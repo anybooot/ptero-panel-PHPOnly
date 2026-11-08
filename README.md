@@ -1,93 +1,166 @@
+# Ptero Panel PHPOnly
+
 <p align="center">
-  <a href="https://pterodactyl.io">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/logo-dark.svg">
-      <img alt="Pterodactyl" src=".github/assets/logo-light.svg" height="72">
-    </picture>
-  </a>
+  <img src=".github/assets/logo-light.svg" alt="Ptero Panel PHPOnly" height="80">
 </p>
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/pterodactyl/panel/ci.yaml?label=Tests&style=for-the-badge&branch=1.0-develop)
-![Discord](https://img.shields.io/discord/122900397965705216?label=Discord&logo=Discord&logoColor=white&style=for-the-badge)
-![GitHub Releases](https://img.shields.io/github/downloads/pterodactyl/panel/latest/total?style=for-the-badge)
-![GitHub contributors](https://img.shields.io/github/contributors/pterodactyl/panel?style=for-the-badge)
+<p align="center">
+  <strong>A PHP-powered alternative to the Pterodactyl Panel.</strong>
+  <br>
+  Built with PHP, HTML, CSS and Vanilla JavaScript.
+</p>
 
-# Pterodactyl Panel
+<p align="center">
+  <img src="https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=for-the-badge&logo=php&logoColor=white">
+  <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white">
+  <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white">
+  <img src="https://img.shields.io/badge/JavaScript-Vanilla-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black">
+  <img src="https://img.shields.io/badge/Database-MySQL%20%2F%20MariaDB-4479A1?style=for-the-badge&logo=mysql&logoColor=white">
+</p>
 
-Pterodactyl® is a free, open-source game server management panel built with PHP, React, and Go. Designed with security
-in mind, Pterodactyl runs all game servers in isolated Docker containers while exposing a beautiful and intuitive
-UI to end users.
+---
 
-Stop settling for less. Make game servers a first class citizen on your platform.
+# About
 
-## Pterodactyl v2 Beta is Out!
+**Ptero Panel PHPOnly** is a project focused on rebuilding the Pterodactyl Panel using a pure PHP architecture.
 
-Pterodactyl v2.0.0-beta.1 is now available! The next major version introduces a modernized tech stack, a redesigned admin area, and an extension SDK built into the panel. It remains 100% free and open source under the MIT license.
+The goal is to replace the original React and Laravel stack with:
 
-[![Watch: Introducing Pterodactyl v2](.github/assets/v2-video.jpg)](https://www.youtube.com/watch?v=1ER4kv0jVEU)
+- PHP
+- HTML5
+- CSS3
+- Vanilla JavaScript
+- MySQL / MariaDB
 
-- [Get started with v2](https://docs.pterodactyl.io/v2/panel/getting-started)
-- [Upgrade from v1](https://docs.pterodactyl.io/v2/upgrading/upgrading-from-v1)
-- [Release notes](https://github.com/pterodactyl/panel/releases/tag/v2.0.0-beta.1)
+While maintaining compatibility with the existing Pterodactyl infrastructure.
 
-Development happens on the [`2.0-develop`](https://github.com/pterodactyl/panel/tree/2.0-develop) branch. The v2 branch is currently in beta, while `1.0-develop` remains the current stable release line.
+The project aims to preserve the original functionality, communication protocols and integrations, including Pterodactyl Wings, Docker, WebSockets and the existing database structure.
 
-![Image](https://cdn.pterodactyl.io/site-assets/pterodactyl_v1_demo.gif)
+**No React. No Laravel. No frontend frameworks. Just PHP, HTML, CSS and JavaScript.**
 
-## Documentation
+# Main Features
 
-* [Panel Documentation](https://pterodactyl.io/panel/1.0/getting_started.html)
-* [Wings Documentation](https://pterodactyl.io/wings/1.0/installing.html)
-* [Community Guides](https://pterodactyl.io/community/about.html)
-* Or, get additional help [via Discord](https://discord.gg/pterodactyl)
+The project aims to provide the functionality of the original Pterodactyl Panel.
 
-## Sponsors
+### User Panel
 
-I would like to extend my sincere thanks to the following sponsors for helping fund Pterodactyl's development.
-[Interested in becoming a sponsor?](https://github.com/sponsors/pterodactyl)
+- User authentication.
+- Dashboard.
+- Server management.
+- Server console.
+- Live resource statistics.
+- File manager.
+- File uploads and downloads.
+- Server startup configuration.
+- Database management.
+- Backups.
+- Schedules.
+- User account settings.
+- API management.
 
-| Company                                                                           | About                                                                                                                                                                                                                                           |
-|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [**Buildurly**](https://buildurly.com/)                                           | Buildurly is a hardware procurement company. They deliver tailored, enterprise-grade hardware solutions designed around your unique needs. From sourcing to delivery, Buildurly's white-glove service ensures a seamless, worry-free, professional experience.                                                                                                                                          |
-| [**Hosturly**](https://hosturly.com/)                                             | Hosturly is an enterprise hosting provider. They provide cost-effective, high-performance, and reliable services, including VPS, Web, Dedicated, and Colocation.                                                                                |
-| [**indifferent broccoli**](https://indifferentbroccoli.com/)                      | indifferent broccoli is a game server hosting and rental company. With them, you get top-notch computer power for your gaming sessions. They destroy lag, latency, and complexity--letting you focus on the fun stuff.                         |
-| [**Infraly, LLC**](https://infraly.co/)                                           | Infraly is an infrastructure company powering the next generation of online services. Through their brands, Infraly delivers cutting-edge solutions across multiple markets. Their vertically integrated approach provides unmatched performance, scalability, and reliability, giving our customers full control.                                                                                     |
-| [**MineStrator**](https://minestrator.com/)                                       | MineStrator is a game server hosting provider. Looking for the most high-end French hosting company for your Minecraft server? More than 24,000 members on our Discord trust us. Give us a try!                                                |
-| [**Physgun**](https://physgun.com/)                                               | Physgun is a game server hosting provider. Most providers rent rack space and rebrand a panel. At Physgun, they engineer the performance, write the features, and staff the support. Physgun truly is game hosting perfected!                   |
-| [**WISP**](https://wisp.gg/)                                                      | WISP is an industry-leading SaaS platform for game server management, designed for hosting companies, gaming organizations, and enthusiasts. WISP combines modern, intuitive interfaces with powerful tools, making server deployment and administration seamless, scalable, and efficient.                                                                                                                 |
+### Administration
 
+- User management.
+- Server management.
+- Server creation.
+- Node management.
+- Location management.
+- Nest management.
+- Egg management.
+- Allocation management.
+- System configuration.
+- Administrative controls.
 
-### Supported Games
+### Infrastructure Integration
 
-Pterodactyl supports a wide variety of games by utilizing Docker containers to isolate each instance. This gives
-you the power to run game servers without bloating machines with a host of additional dependencies.
+The project is designed around compatibility with the existing Pterodactyl infrastructure.
 
-Some of our core supported games include:
+- Pterodactyl Wings API.
+- Docker containers.
+- MySQL / MariaDB.
+- WebSocket communication.
+- Server console streaming.
+- Server power management.
+- Resource monitoring.
+- File operations.
+- Existing server configurations.
 
-* Minecraft — including Paper, Sponge, Bungeecord, Waterfall, and more
-* Rust
-* Terraria
-* Teamspeak
-* Mumble
-* Team Fortress 2
-* Counter Strike: Global Offensive
-* Garry's Mod
-* ARK: Survival Evolved
+# Technology Stack
 
-In addition to our standard nest of supported games, our community is constantly pushing the limits of this software
-and there are plenty more games available provided by the community. Some of these games include:
+| Component | Technology |
+|---|---|
+| Backend | PHP |
+| Frontend | HTML5 |
+| Styling | CSS3 |
+| Client-side logic | Vanilla JavaScript |
+| Database | MySQL / MariaDB |
+| Database communication | PDO |
+| Server management | Pterodactyl Wings |
+| Container management | Docker |
+| Real-time communication | WebSockets |
+| HTTP communication | PHP / Fetch API |
 
-* Factorio
-* San Andreas: MP
-* Pocketmine MP
-* Squad
-* Xonotic
-* Starmade
-* Discord ATLBot, and most other Node.js/Python discord bots
-* [and many more...](https://eggs.pterodactyl.io)
+# Compatibility
 
-## License
+The primary objective is to maintain compatibility with the original Pterodactyl infrastructure.
 
-Pterodactyl® Copyright © 2015 - 2022 Dane Everitt and contributors.
+This includes:
 
-Code released under the [MIT License](./LICENSE.md).
+- Existing Wings installations.
+- Existing Docker containers.
+- Existing nodes.
+- Existing server allocations.
+- Existing server data.
+- Existing database structures.
+- Original communication protocols.
+
+The panel should not require modifications to Wings or Docker to provide its intended functionality.
+
+# Installation
+
+Installation instructions will be published as the project develops.
+
+Requirements are expected to include:
+
+- PHP 8.2 or newer.
+- MySQL / MariaDB.
+- Required PHP extensions.
+- A supported web server (Nginx or Apache).
+- Existing Pterodactyl Wings infrastructure for server management.
+
+# Project Status
+
+<em>Development is ongoing.</em>
+
+This project is being developed to provide a PHP-only alternative to the original Pterodactyl Panel.
+
+Features and compatibility will be documented as implementation and testing progress.
+
+# Important Notice
+
+Ptero Panel PHPOnly is an independent community project and is not an official Pterodactyl release.
+
+Pterodactyl and its associated trademarks belong to their respective owners.
+
+This project aims to maintain compatibility with the Pterodactyl ecosystem while implementing an alternative technology stack.
+
+# Original Project
+
+- [Pterodactyl Website](https://pterodactyl.io)
+- [Pterodactyl GitHub](https://github.com/pterodactyl/panel)
+- [Pterodactyl Documentation](https://pterodactyl.io/panel/1.0/getting_started.html)
+- [Wings Documentation](https://pterodactyl.io/wings/1.0/installing.html)
+
+# License
+
+This project follows the license terms applicable to its source code and dependencies.
+
+See [LICENSE](./LICENSE) for details.
+
+---
+
+<p align="center">
+  <strong>Ptero Panel PHPOnly</strong>
+  <br>
+  Rebuilding the Pterodactyl experience with pure PHP.
+</p>
