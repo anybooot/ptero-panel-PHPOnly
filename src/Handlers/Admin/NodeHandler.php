@@ -189,6 +189,7 @@ class NodeHandler
         $panelUrl = (string)Config::get('APP_URL', 'http://localhost');
         $tokenSecret = Encrypter::decryptString($node['daemon_token']);
         $bearerToken = "{$node['daemon_token_id']}.{$tokenSecret}";
+        $sslEnabled = ($node['scheme'] === 'https') ? 'true' : 'false';
 
         // Build config.yml content
         $configYml = <<<YAML
@@ -200,7 +201,7 @@ api:
   host: 0.0.0.0
   port: {$node['daemonListen']}
   ssl:
-    enabled: {$node['scheme'] === 'https'}
+    enabled: {$sslEnabled}
     cert: /etc/letsencrypt/live/{$node['fqdn']}/fullchain.pem
     key: /etc/letsencrypt/live/{$node['fqdn']}/privkey.pem
   upload_limit: {$node['uploadSize']}
@@ -337,6 +338,27 @@ YAML;
         Database::execute("DELETE FROM `allocations` WHERE `id` = :id", ['id' => $allocationId]);
         Session::flash('success', 'Allocation deleted.');
         return Response::redirect("/admin/nodes/view/{$id}/allocation");
+    }
+
+    public function deleteUnassignedAllocations(Request $request, string $id): Response
+    {
+        $node = Database::queryOne("SELECT * FROM `nodes` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        if (!$node) {
+            return Response::redirect('/admin/nodes');
+        }
+
+        $deleted = Database::execute("DELETE FROM `allocations` WHERE `node_id` = :id AND `server_id` IS NULL", ['id' => $id]);
+        Session::flash('success', "Deleted {$deleted} unassigned allocation(s).");
+        return Response::redirect("/admin/nodes/view/{$id}/allocation");
+    }
+
+    public function allocationsJson(Request $request, string $id): Response
+    {
+        $allocations = Database::query(
+            "SELECT `id`, `ip`, `ip_alias`, `port` FROM `allocations` WHERE `node_id` = :node_id AND `server_id` IS NULL ORDER BY `port` ASC",
+            ['node_id' => $id]
+        );
+        return Response::json($allocations);
     }
 
     public function servers(Request $request, string $id): Response

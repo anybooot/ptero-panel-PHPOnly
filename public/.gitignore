@@ -1,4 +1,3 @@
-assets
-assets/*
-!assets/svgs
-!assets/svgs/*.svg
+# Keep assets directory tracked for native css, js, svgs, and favicons
+!assets/
+!assets/**

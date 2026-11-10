@@ -35,14 +35,21 @@
 
                 <div class="form-group">
                     <label class="form-label" for="srv-node">Target Node</label>
-                    <select id="srv-node" name="node_id" class="form-control" required>
+                    <select id="srv-node" name="node_id" class="form-control" required onchange="loadNodeAllocations(this.value)">
                         <option value="">Select Node</option>
                         <?php foreach ($nodes as $n): ?>
                             <option value="<?= $n['id'] ?>"><?= \Pterodactyl\Core\View::e($n['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="srv-alloc">Primary Allocation</label>
+                    <select id="srv-alloc" name="allocation_id" class="form-control">
+                        <option value="0">Auto-assign first available</option>
+                    </select>
                     <small style="color: var(--text-muted); font-size: 12px; margin-top: 4px; display: block;">
-                        A free port allocation on the selected node will be automatically assigned.
+                        Select a specific IP and port or leave on auto-assign.
                     </small>
                 </div>
 
@@ -94,6 +101,21 @@
                     </div>
                 </div>
 
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px;">
+                    <div class="form-group">
+                        <label class="form-label" for="srv-alloc-limit">Allocations Limit</label>
+                        <input type="number" id="srv-alloc-limit" name="allocation_limit" class="form-control" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="srv-db-limit">Databases Limit</label>
+                        <input type="number" id="srv-db-limit" name="database_limit" class="form-control" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="srv-bk-limit">Backups Limit</label>
+                        <input type="number" id="srv-bk-limit" name="backup_limit" class="form-control" value="0">
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label class="form-label" for="srv-image">Docker Image</label>
                     <input type="text" id="srv-image" name="image" class="form-control" placeholder="ghcr.io/pterodactyl/yolks:java_17">
@@ -112,6 +134,26 @@
 </form>
 
 <script>
+async function loadNodeAllocations(nodeId) {
+    const allocSelect = document.getElementById('srv-alloc');
+    allocSelect.innerHTML = '<option value="0">Auto-assign first available</option>';
+    if (!nodeId) return;
+
+    try {
+        const res = await fetch(`/admin/nodes/view/${nodeId}/allocations-json`);
+        if (!res.ok) return;
+        const allocations = await res.json();
+        allocations.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a.id;
+            opt.textContent = `${a.ip_alias ? a.ip_alias + ' (' + a.ip + ')' : a.ip}:${a.port}`;
+            allocSelect.appendChild(opt);
+        });
+    } catch (e) {
+        console.error('Error fetching allocations:', e);
+    }
+}
+
 function filterEggs(nestId) {
     const eggSelect = document.getElementById('srv-egg');
     const options = eggSelect.querySelectorAll('option');

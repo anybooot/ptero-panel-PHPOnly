@@ -45,17 +45,33 @@ class Database
         return self::$instance;
     }
 
+    private static function bindParams(\PDOStatement $stmt, array $params): void
+    {
+        foreach ($params as $key => $val) {
+            $paramType = match (gettype($val)) {
+                'integer' => PDO::PARAM_INT,
+                'boolean' => PDO::PARAM_BOOL,
+                'NULL' => PDO::PARAM_NULL,
+                default => PDO::PARAM_STR,
+            };
+            $paramName = is_int($key) ? $key + 1 : (str_starts_with((string)$key, ':') ? (string)$key : ":{$key}");
+            $stmt->bindValue($paramName, $val, $paramType);
+        }
+    }
+
     public static function query(string $sql, array $params = []): array
     {
         $stmt = self::connect()->prepare($sql);
-        $stmt->execute($params);
+        self::bindParams($stmt, $params);
+        $stmt->execute();
         return $stmt->fetchAll();
     }
 
     public static function queryOne(string $sql, array $params = []): ?array
     {
         $stmt = self::connect()->prepare($sql);
-        $stmt->execute($params);
+        self::bindParams($stmt, $params);
+        $stmt->execute();
         $result = $stmt->fetch();
         return $result ?: null;
     }
@@ -63,7 +79,8 @@ class Database
     public static function execute(string $sql, array $params = []): int
     {
         $stmt = self::connect()->prepare($sql);
-        $stmt->execute($params);
+        self::bindParams($stmt, $params);
+        $stmt->execute();
         return $stmt->rowCount();
     }
 

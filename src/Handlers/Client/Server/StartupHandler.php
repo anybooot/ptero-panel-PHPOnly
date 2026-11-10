@@ -26,7 +26,7 @@ class StartupHandler
         }
 
         $variables = Database::query(
-            "SELECT ev.*, sv.`server_value`
+            "SELECT ev.*, sv.`variable_value` as `server_value`
              FROM `egg_variables` ev
              LEFT JOIN `server_variables` sv ON sv.`variable_id` = ev.`id` AND sv.`server_id` = :server_id
              WHERE ev.`egg_id` = :egg_id ORDER BY ev.`id` ASC",
@@ -102,14 +102,14 @@ class StartupHandler
 
         if ($existing) {
             Database::execute(
-                "UPDATE `server_variables` SET `server_value` = :val WHERE `id` = :id",
+                "UPDATE `server_variables` SET `variable_value` = :val WHERE `id` = :id",
                 ['val' => $value, 'id' => $existing['id']]
             );
         } else {
             Database::insert('server_variables', [
                 'server_id' => $server['id'],
                 'variable_id' => $variable['id'],
-                'server_value' => $value,
+                'variable_value' => $value,
             ]);
         }
 

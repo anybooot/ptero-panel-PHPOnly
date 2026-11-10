@@ -178,7 +178,9 @@ class Routes
             $r->post('/nodes/view/{id}/settings', [Admin\NodeHandler::class, 'updateSettings'], [CsrfMiddleware::class]);
             $r->get('/nodes/view/{id}/configuration', [Admin\NodeHandler::class, 'configuration']);
             $r->get('/nodes/view/{id}/allocation', [Admin\NodeHandler::class, 'allocations']);
+            $r->get('/nodes/view/{id}/allocations-json', [Admin\NodeHandler::class, 'allocationsJson']);
             $r->post('/nodes/view/{id}/allocation', [Admin\NodeHandler::class, 'createAllocation'], [CsrfMiddleware::class]);
+            $r->post('/nodes/view/{id}/allocations/delete-unassigned', [Admin\NodeHandler::class, 'deleteUnassignedAllocations'], [CsrfMiddleware::class]);
             $r->delete('/nodes/view/{id}/allocation/{allocId}', [Admin\NodeHandler::class, 'deleteAllocation']);
             $r->get('/nodes/view/{id}/servers', [Admin\NodeHandler::class, 'servers']);
             $r->get('/nodes/view/{id}/system-information', [Admin\NodeHandler::class, 'systemInfo']);
@@ -193,8 +195,18 @@ class Routes
             $r->post('/servers/view/{id}/details', [Admin\ServerHandler::class, 'updateDetails'], [CsrfMiddleware::class]);
             $r->get('/servers/view/{id}/build', [Admin\ServerHandler::class, 'build']);
             $r->post('/servers/view/{id}/build', [Admin\ServerHandler::class, 'updateBuild'], [CsrfMiddleware::class]);
+            $r->get('/servers/view/{id}/startup', [Admin\ServerHandler::class, 'startup']);
+            $r->post('/servers/view/{id}/startup', [Admin\ServerHandler::class, 'updateStartup'], [CsrfMiddleware::class]);
+            $r->get('/servers/view/{id}/database', [Admin\ServerHandler::class, 'databases']);
+            $r->post('/servers/view/{id}/database', [Admin\ServerHandler::class, 'createDatabase'], [CsrfMiddleware::class]);
+            $r->post('/servers/view/{id}/database/{dbId}/reset-password', [Admin\ServerHandler::class, 'resetDatabasePassword'], [CsrfMiddleware::class]);
+            $r->delete('/servers/view/{id}/database/{dbId}', [Admin\ServerHandler::class, 'deleteDatabase']);
+            $r->get('/servers/view/{id}/mounts', [Admin\ServerHandler::class, 'mounts']);
+            $r->post('/servers/view/{id}/mounts', [Admin\ServerHandler::class, 'addMount'], [CsrfMiddleware::class]);
+            $r->delete('/servers/view/{id}/mounts/{mountId}', [Admin\ServerHandler::class, 'deleteMount']);
             $r->get('/servers/view/{id}/manage', [Admin\ServerHandler::class, 'manage']);
             $r->post('/servers/view/{id}/manage/toggle-suspend', [Admin\ServerHandler::class, 'toggleSuspend'], [CsrfMiddleware::class]);
+            $r->post('/servers/view/{id}/manage/toggle-install', [Admin\ServerHandler::class, 'toggleInstallStatus'], [CsrfMiddleware::class]);
             $r->post('/servers/view/{id}/manage/reinstall', [Admin\ServerHandler::class, 'reinstall'], [CsrfMiddleware::class]);
             $r->delete('/servers/view/{id}/delete', [Admin\ServerHandler::class, 'delete']);
 
@@ -214,11 +226,15 @@ class Routes
             $r->delete('/nests/view/{id}', [Admin\NestHandler::class, 'delete']);
             $r->get('/nests/egg/new', [Admin\EggHandler::class, 'createForm']);
             $r->post('/nests/egg/new', [Admin\EggHandler::class, 'create'], [CsrfMiddleware::class]);
+            $r->get('/nests/egg/import', [Admin\EggHandler::class, 'importForm']);
+            $r->post('/nests/egg/import', [Admin\EggHandler::class, 'import'], [CsrfMiddleware::class]);
             $r->get('/nests/egg/{id}', [Admin\EggHandler::class, 'view']);
             $r->post('/nests/egg/{id}', [Admin\EggHandler::class, 'update'], [CsrfMiddleware::class]);
+            $r->post('/nests/egg/{id}/clone', [Admin\EggHandler::class, 'cloneEgg'], [CsrfMiddleware::class]);
             $r->get('/nests/egg/{id}/export', [Admin\EggHandler::class, 'export']);
             $r->get('/nests/egg/{id}/variables', [Admin\EggHandler::class, 'variables']);
             $r->post('/nests/egg/{id}/variables', [Admin\EggHandler::class, 'createVariable'], [CsrfMiddleware::class]);
+            $r->post('/nests/egg/{id}/variables/{varId}', [Admin\EggHandler::class, 'updateVariable'], [CsrfMiddleware::class]);
             $r->delete('/nests/egg/{id}/variables/{varId}', [Admin\EggHandler::class, 'deleteVariable']);
             $r->delete('/nests/egg/{id}', [Admin\EggHandler::class, 'delete']);
 

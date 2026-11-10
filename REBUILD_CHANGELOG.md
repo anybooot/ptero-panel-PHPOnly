@@ -101,7 +101,10 @@ Toate secțiunile din panoul de administrare sunt complete și funcționale:
    - Privire de ansamblu server (`views/admin/servers/view.php`): metadate complete, stare container, nod, legătură directă către consola de client.
    - Editare detalii (`views/admin/servers/details.php`): schimbare nume, proprietar, descriere cu sincronizare automată Wings.
    - Configurație build (`views/admin/servers/build.php`): ajustare cote resurse (CPU, RAM, Swap, Disk, OOM killer, limite baze de date și backup-uri).
-   - Acțiuni administrative (`views/admin/servers/manage.php`): suspendare / reactivare server, reinstalare completă container, ștergere definitivă cu eliberare alocări și curățare baze de date relaționate.
+   - Configurație Startup & Variabile (`views/admin/servers/startup.php`): modificare comandă de startup, schimbare Egg și imagine Docker, editare completă cu drepturi administrative a tuturor variabilelor de mediu și sincronizare Wings.
+   - Baze de date server (`views/admin/servers/databases.php`): listare baze de date, creare baze de date direct pe host-ul MySQL dorit, resetare parole baze de date și ștergere.
+   - Puncte de montare server (`views/admin/servers/mounts.php`): atașare și detașare mount-uri pe server cu sincronizare Wings.
+   - Acțiuni administrative (`views/admin/servers/manage.php`): suspendare / reactivare server, resetare stare instalare blocată, reinstalare completă container, ștergere definitivă cu eliberare alocări și curățare baze de date relaționate.
 6. **Users** (`views/admin/users/` & `UserHandler.php`):
    - Căutare și listare utilizatori cu roluri, stare 2FA și număr de servere deținute.
    - Creare utilizator nou (email, username, parolă, privilegii root admin).
@@ -110,8 +113,10 @@ Toate secțiunile din panoul de administrare sunt complete și funcționale:
    - Listare și creare Nests.
    - Vizualizare și editare Nest, listare Eggs componente.
    - Creare Egg nou cu imagine Docker și comandă de pornire.
+   - Import Egg din JSON (`views/admin/eggs/import.php`): încărcare fișier `.json` oficial Pterodactyl sau inserare cod JSON brut, cu parsare automată de variabile, containere și scripturi de instalare.
+   - Clonare Egg: duplicare instantanee a unui Egg cu toate variabilele și setările componente.
    - Editare completă Egg: imagine Docker, comandă de stop (`stop` sau semnale `^C`), script de instalare Bash, container de instalare (`alpine`), export definiție Egg în format JSON.
-   - Management variabile de mediu Egg (`views/admin/eggs/variables.php`): adăugare variabile cu placeholder `{{NUME}}`, valori implicite, reguli de validare, permisiuni de editare utilizator, ștergere variabile.
+   - Management variabile de mediu Egg (`views/admin/eggs/variables.php`): adăugare variabile noi, editare variabile existente prin modal dedicat, ștergere variabile, placeholder `{{NUME}}`, valori implicite, reguli de validare, permisiuni de editare utilizator.
 8. **Mounts** (`views/admin/mounts/` & `MountHandler.php`):
    - Listare puncte de montare (directoare partajate între mașina gazdă și containerele Docker).
    - Creare mount nou cu cale sursă și țintă, drepturi Read-Only / Read-Write.
@@ -192,7 +197,8 @@ Toate paginile destinate utilizatorului și controlului de server funcționează
 
 ## 6. Verificare și Integritate
 
-- Toate cele **51 de fișiere de șablon (views)** au fost create și verificate.
-- Toate cele **111 fișiere PHP** din nucleu (`src/` și `views/`) au fost inspectate și validate din punct de vedere structural.
+- Toate cele **54 de fișiere de șablon (views)** au fost create, testate și verificate cu randare completă a ierarhiei de layout-uri.
+- Toate cele **116 fișiere PHP** din nucleu (`src/`, `views/`, `cli.php`, `public/index.php`) au fost inspectate și validate din punct de vedere sintactic (`php -l`) fără erori.
+- Pachetul complet de active frontend native (`public/assets/css/pterodactyl.css`, `public/assets/css/terminal.css`, `public/assets/js/app.js`, `public/assets/js/console.js`, `public/assets/js/stats.js`, `public/assets/js/files.js`) este integrat și operațional fără dependențe de Node.js sau biblioteci externe.
 - Baza de date originală a Pterodactyl Panel nu suferă modificări distructive: tabelele, relațiile și datele existente (utilizatori, servere, noduri, alocări) sunt utilizate direct.
 - Protocolul cu Pterodactyl Wings a fost respectat cu strictețe atât pe componenta HTTP REST, cât și pe componenta de WebSocket și SFTP.

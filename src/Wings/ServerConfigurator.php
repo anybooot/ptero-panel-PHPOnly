@@ -160,7 +160,7 @@ class ServerConfigurator
         // Fetch egg variables
         if ($egg) {
             $variables = Database::query(
-                "SELECT ev.`env_variable`, ev.`default_value`, ev.`user_viewable`, sv.`server_value`
+                "SELECT ev.`env_variable`, ev.`default_value`, ev.`user_viewable`, sv.`variable_value` as `server_value`
                  FROM `egg_variables` ev
                  LEFT JOIN `server_variables` sv ON sv.`variable_id` = ev.`id` AND sv.`server_id` = :server_id
                  WHERE ev.`egg_id` = :egg_id",

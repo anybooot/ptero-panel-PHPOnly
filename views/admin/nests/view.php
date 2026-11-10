@@ -6,6 +6,7 @@
         <p class="page-subtitle"><?= \Pterodactyl\Core\View::e($nest['description'] ?: 'No description provided') ?></p>
     </div>
     <div style="display: flex; gap: 8px;">
+        <a href="/admin/nests/egg/import?nest_id=<?= $nest['id'] ?>" class="btn btn-secondary btn-sm">Import Egg</a>
         <a href="/admin/nests/egg/new?nest_id=<?= $nest['id'] ?>" class="btn btn-primary btn-sm">Create New Egg</a>
         <a href="/admin/nests" class="btn btn-secondary btn-sm">Back to Nests</a>
         <form action="/admin/nests/view/<?= $nest['id'] ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this nest? All contained eggs must be deleted first.');" style="margin: 0;">

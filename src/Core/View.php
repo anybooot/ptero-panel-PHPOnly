@@ -45,8 +45,11 @@ class View
         include $file;
         $content = ob_get_clean() ?: '';
 
-        if ($this->layout !== null) {
-            $layoutFile = self::$baseDir . DIRECTORY_SEPARATOR . str_replace('.', DIRECTORY_SEPARATOR, $this->layout) . '.php';
+        while ($this->layout !== null) {
+            $currentLayout = $this->layout;
+            $this->layout = null;
+
+            $layoutFile = self::$baseDir . DIRECTORY_SEPARATOR . str_replace('.', DIRECTORY_SEPARATOR, $currentLayout) . '.php';
             if (!file_exists($layoutFile)) {
                 throw new \RuntimeException("Layout file not found: {$layoutFile}");
             }
@@ -54,7 +57,7 @@ class View
             $this->sections['content'] = $content;
             ob_start();
             include $layoutFile;
-            return ob_get_clean() ?: '';
+            $content = ob_get_clean() ?: '';
         }
 
         return $content;

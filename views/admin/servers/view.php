@@ -16,6 +16,9 @@
     <a href="/admin/servers/view/<?= $server['id'] ?>" class="<?= ($activeServerTab ?? '') === 'overview' ? 'active' : '' ?>">Overview</a>
     <a href="/admin/servers/view/<?= $server['id'] ?>/details" class="<?= ($activeServerTab ?? '') === 'details' ? 'active' : '' ?>">Details</a>
     <a href="/admin/servers/view/<?= $server['id'] ?>/build" class="<?= ($activeServerTab ?? '') === 'build' ? 'active' : '' ?>">Build Configuration</a>
+    <a href="/admin/servers/view/<?= $server['id'] ?>/startup" class="<?= ($activeServerTab ?? '') === 'startup' ? 'active' : '' ?>">Startup</a>
+    <a href="/admin/servers/view/<?= $server['id'] ?>/database" class="<?= ($activeServerTab ?? '') === 'database' ? 'active' : '' ?>">Databases</a>
+    <a href="/admin/servers/view/<?= $server['id'] ?>/mounts" class="<?= ($activeServerTab ?? '') === 'mounts' ? 'active' : '' ?>">Mounts</a>
     <a href="/admin/servers/view/<?= $server['id'] ?>/manage" class="<?= ($activeServerTab ?? '') === 'manage' ? 'active' : '' ?>">Manage &amp; Actions</a>
 </nav>
 

@@ -7,6 +7,10 @@
     </div>
     <div style="display: flex; gap: 8px;">
         <button class="btn btn-primary btn-sm" onclick="App.openModal('modal-add-allocations')">Assign New Allocations</button>
+        <form action="/admin/nodes/view/<?= $node['id'] ?>/allocations/delete-unassigned" method="POST" onsubmit="return confirm('Are you sure you want to delete ALL unassigned allocations on this node?');" style="margin: 0;">
+            <?= \Pterodactyl\Core\View::csrf() ?>
+            <button type="submit" class="btn btn-danger btn-sm">Delete Unassigned</button>
+        </form>
         <a href="/admin/nodes" class="btn btn-secondary btn-sm">Back to Nodes</a>
     </div>
 </div>

@@ -34,8 +34,8 @@ class ServerListHandler
         $lastPage = max(1, (int)ceil($total / $perPage));
 
         $servers = Database::query(
-            "SELECT * FROM `servers` WHERE `node_id` = :node_id ORDER BY `id` ASC LIMIT :limit OFFSET :offset",
-            ['node_id' => $node['id'], 'limit' => $perPage, 'offset' => $offset]
+            "SELECT * FROM `servers` WHERE `node_id` = :node_id ORDER BY `id` ASC LIMIT {$perPage} OFFSET {$offset}",
+            ['node_id' => $node['id']]
         );
 
         $data = [];

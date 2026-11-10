@@ -5,7 +5,8 @@
         <h1 class="page-title">Nests</h1>
         <p class="page-subtitle">Game types and configurations containing specialized eggs</p>
     </div>
-    <div>
+    <div style="display: flex; gap: 8px;">
+        <a href="/admin/nests/egg/import" class="btn btn-secondary btn-sm">Import Egg</a>
         <button class="btn btn-primary btn-sm" onclick="App.openModal('modal-create-nest')">Create Nest</button>
     </div>
 </div>

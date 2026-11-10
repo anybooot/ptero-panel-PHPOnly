@@ -1,0 +1,148 @@
+/**
+ * Pterodactyl Panel - Terminal, ANSI Colors & Canvas Stats CSS
+ */
+
+/* ================= Terminal & Console ================= */
+.terminal-wrapper {
+    background-color: #0b0f17;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.terminal-window {
+    height: 480px;
+    overflow-y: auto;
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.5;
+    color: #e2e8f0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    user-select: text;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.terminal-window::-webkit-scrollbar {
+    width: 6px;
+}
+
+.terminal-window::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+.terminal-input-bar {
+    display: flex;
+    align-items: center;
+    background-color: #070a10;
+    border-top: 1px solid var(--border-color);
+    padding: 8px 14px;
+}
+
+.terminal-prompt-icon {
+    color: #3b82f6;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 14px;
+    margin-right: 10px;
+    user-select: none;
+}
+
+.terminal-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+}
+
+/* ================= ANSI Escape Color Codes ================= */
+.ansi-black { color: #4a5568; }
+.ansi-red { color: #f87171; }
+.ansi-green { color: #34d399; }
+.ansi-yellow { color: #fbbf24; }
+.ansi-blue { color: #60a5fa; }
+.ansi-magenta { color: #c084fc; }
+.ansi-cyan { color: #38bdf8; }
+.ansi-white { color: #f1f5f9; }
+
+.ansi-bright-black { color: #718096; }
+.ansi-bright-red { color: #ef4444; }
+.ansi-bright-green { color: #10b981; }
+.ansi-bright-yellow { color: #f59e0b; }
+.ansi-bright-blue { color: #3b82f6; }
+.ansi-bright-magenta { color: #a855f7; }
+.ansi-bright-cyan { color: #0ea5e9; }
+.ansi-bright-white { color: #ffffff; }
+
+.ansi-bg-black { background-color: #000; }
+.ansi-bg-red { background-color: #7f1d1d; }
+.ansi-bg-green { background-color: #064e3b; }
+.ansi-bg-yellow { background-color: #78350f; }
+.ansi-bg-blue { background-color: #1e3a8a; }
+.ansi-bg-magenta { background-color: #581c87; }
+.ansi-bg-cyan { background-color: #0c4a6e; }
+.ansi-bg-white { background-color: #475569; }
+
+.ansi-bold { font-weight: 700; }
+.ansi-dim { opacity: 0.7; }
+.ansi-italic { font-style: italic; }
+.ansi-underline { text-decoration: underline; }
+
+/* ================= Resource Graphs Grid ================= */
+.graphs-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+    .graphs-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.graph-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    overflow: hidden;
+}
+
+.graph-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.graph-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.graph-val {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    font-family: var(--font-mono);
+}
+
+.graph-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}

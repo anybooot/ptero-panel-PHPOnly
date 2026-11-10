@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Pterodactyl\Handlers\Admin;
 
+use PDO;
 use Pterodactyl\Core\Database;
 use Pterodactyl\Core\Request;
 use Pterodactyl\Core\Response;
 use Pterodactyl\Core\Session;
 use Pterodactyl\Core\View;
+use Pterodactyl\Security\Encrypter;
 use Pterodactyl\Wings\WingsClient;
 
 /**
@@ -162,7 +164,7 @@ class ServerHandler
             Database::insert('server_variables', [
                 'server_id' => $serverId,
                 'variable_id' => $ev['id'],
-                'server_value' => (string)$val,
+                'variable_value' => (string)$val,
             ]);
         }
 
@@ -420,5 +422,378 @@ class ServerHandler
 
         Session::flash('success', 'Server deleted successfully.');
         return Response::redirect('/admin/servers');
+    }
+
+    public function startup(Request $request, string $id): Response
+    {
+        $user = $request->getAttribute('user');
+        $server = Database::queryOne(
+            "SELECT s.*, n.`name` as node_name, e.`name` as egg_name, nest.`name` as nest_name
+             FROM `servers` s
+             JOIN `nodes` n ON n.`id` = s.`node_id`
+             JOIN `eggs` e ON e.`id` = s.`egg_id`
+             JOIN `nests` nest ON nest.`id` = s.`nest_id`
+             WHERE s.`id` = :id LIMIT 1",
+            ['id' => $id]
+        );
+        if (!$server) {
+            return Response::redirect('/admin/servers');
+        }
+
+        $egg = Database::queryOne("SELECT * FROM `eggs` WHERE `id` = :id LIMIT 1", ['id' => $server['egg_id']]);
+        $nests = Database::query("SELECT * FROM `nests` ORDER BY `name` ASC");
+        $eggs = Database::query("SELECT `id`, `nest_id`, `name`, `startup`, `image`, `docker_images` FROM `eggs` ORDER BY `name` ASC");
+
+        $variables = Database::query(
+            "SELECT ev.*, sv.`variable_value` as `server_value`
+             FROM `egg_variables` ev
+             LEFT JOIN `server_variables` sv ON sv.`variable_id` = ev.`id` AND sv.`server_id` = :server_id
+             WHERE ev.`egg_id` = :egg_id ORDER BY ev.`id` ASC",
+            ['server_id' => $server['id'], 'egg_id' => $server['egg_id']]
+        );
+
+        $html = View::render('admin.servers.startup', [
+            'user' => $user,
+            'server' => $server,
+            'egg' => $egg,
+            'nests' => $nests,
+            'eggs' => $eggs,
+            'variables' => $variables,
+            'success' => Session::getFlash('success'),
+            'error' => Session::getFlash('error'),
+            'activeAdminTab' => 'servers',
+            'activeServerTab' => 'startup',
+        ]);
+
+        return Response::html($html);
+    }
+
+    public function updateStartup(Request $request, string $id): Response
+    {
+        $server = Database::queryOne("SELECT * FROM `servers` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        if (!$server) {
+            return Response::redirect('/admin/servers');
+        }
+
+        $startup = trim((string)$request->input('startup', $server['startup']));
+        $image = trim((string)$request->input('image', $server['image']));
+        $eggId = (int)$request->input('egg_id', $server['egg_id']);
+
+        $egg = Database::queryOne("SELECT * FROM `eggs` WHERE `id` = :id LIMIT 1", ['id' => $eggId]);
+        if (!$egg) {
+            Session::flash('error', 'Selected Egg was not found.');
+            return Response::redirect("/admin/servers/view/{$id}/startup");
+        }
+
+        Database::update('servers', [
+            'startup' => $startup,
+            'image' => $image,
+            'egg_id' => $eggId,
+            'nest_id' => $egg['nest_id'],
+            'updated_at' => date('Y-m-d H:i:s'),
+        ], '`id` = :id', ['id' => $id]);
+
+        // Update environment variables
+        $eggVariables = Database::query("SELECT * FROM `egg_variables` WHERE `egg_id` = :egg_id", ['egg_id' => $eggId]);
+        foreach ($eggVariables as $ev) {
+            $inputKey = "env_{$ev['env_variable']}";
+            $val = $request->input($inputKey, $ev['default_value']);
+
+            $existing = Database::queryOne(
+                "SELECT `id` FROM `server_variables` WHERE `server_id` = :server_id AND `variable_id` = :variable_id LIMIT 1",
+                ['server_id' => $id, 'variable_id' => $ev['id']]
+            );
+
+            if ($existing) {
+                Database::execute(
+                    "UPDATE `server_variables` SET `variable_value` = :val WHERE `id` = :id",
+                    ['val' => (string)$val, 'id' => $existing['id']]
+                );
+            } else {
+                Database::insert('server_variables', [
+                    'server_id' => $id,
+                    'variable_id' => $ev['id'],
+                    'variable_value' => (string)$val,
+                ]);
+            }
+        }
+
+        // Sync with Wings
+        $node = Database::queryOne("SELECT * FROM `nodes` WHERE `id` = :id LIMIT 1", ['id' => $server['node_id']]);
+        if ($node) {
+            try {
+                WingsClient::syncServer($node, $server['uuid']);
+            } catch (\Throwable) {}
+        }
+
+        Session::flash('success', 'Startup configuration and variables updated.');
+        return Response::redirect("/admin/servers/view/{$id}/startup");
+    }
+
+    public function databases(Request $request, string $id): Response
+    {
+        $user = $request->getAttribute('user');
+        $server = Database::queryOne("SELECT * FROM `servers` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        if (!$server) {
+            return Response::redirect('/admin/servers');
+        }
+
+        $databases = Database::query(
+            "SELECT d.*, dh.`name` as host_name, dh.`host`, dh.`port`
+             FROM `databases` d
+             JOIN `database_hosts` dh ON dh.`id` = d.`database_host_id`
+             WHERE d.`server_id` = :server_id ORDER BY d.`id` ASC",
+            ['server_id' => $id]
+        );
+
+        foreach ($databases as &$db) {
+            try {
+                $db['password_plain'] = Encrypter::decryptString($db['password']);
+            } catch (\Throwable) {
+                $db['password_plain'] = $db['password'];
+            }
+        }
+
+        $hosts = Database::query("SELECT `id`, `name`, `host`, `port` FROM `database_hosts` ORDER BY `name` ASC");
+
+        $html = View::render('admin.servers.databases', [
+            'user' => $user,
+            'server' => $server,
+            'databases' => $databases,
+            'hosts' => $hosts,
+            'success' => Session::getFlash('success'),
+            'error' => Session::getFlash('error'),
+            'activeAdminTab' => 'servers',
+            'activeServerTab' => 'database',
+        ]);
+
+        return Response::html($html);
+    }
+
+    public function createDatabase(Request $request, string $id): Response
+    {
+        $server = Database::queryOne("SELECT * FROM `servers` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        if (!$server) {
+            return Response::redirect('/admin/servers');
+        }
+
+        $hostId = (int)$request->input('database_host_id', 0);
+        $dbNameInput = trim((string)$request->input('database', ''));
+        $remote = trim((string)$request->input('remote', '%'));
+
+        if ($hostId === 0 || $dbNameInput === '') {
+            Session::flash('error', 'Database host and database name are required.');
+            return Response::redirect("/admin/servers/view/{$id}/database");
+        }
+
+        $host = Database::queryOne("SELECT * FROM `database_hosts` WHERE `id` = :id LIMIT 1", ['id' => $hostId]);
+        if (!$host) {
+            Session::flash('error', 'Selected database host not found.');
+            return Response::redirect("/admin/servers/view/{$id}/database");
+        }
+
+        $finalDbName = "s{$server['id']}_" . preg_replace('/[^a-zA-Z0-9_]/', '', $dbNameInput);
+        $username = "u{$server['id']}_" . substr(bin2hex(random_bytes(4)), 0, 8);
+        $plainPassword = bin2hex(random_bytes(16));
+
+        try {
+            $dsn = "mysql:host={$host['host']};port={$host['port']}";
+            $decryptedPass = Encrypter::decryptString($host['password']);
+            $pdo = new PDO($dsn, $host['username'], $decryptedPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]);
+
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$finalDbName}`");
+            $pdo->exec("CREATE USER IF NOT EXISTS '{$username}'@'{$remote}' IDENTIFIED BY '{$plainPassword}'");
+            $pdo->exec("GRANT ALL PRIVILEGES ON `{$finalDbName}`.* TO '{$username}'@'{$remote}'");
+            $pdo->exec("FLUSH PRIVILEGES");
+        } catch (\Throwable $e) {
+            Session::flash('error', 'Could not create database on remote host: ' . $e->getMessage());
+            return Response::redirect("/admin/servers/view/{$id}/database");
+        }
+
+        Database::insert('databases', [
+            'server_id' => $server['id'],
+            'database_host_id' => $host['id'],
+            'database' => $finalDbName,
+            'username' => $username,
+            'remote' => $remote,
+            'password' => Encrypter::encryptString($plainPassword),
+            'max_connections' => (int)$request->input('max_connections', 0),
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        Session::flash('success', "Database [{$finalDbName}] created successfully with user [{$username}].");
+        return Response::redirect("/admin/servers/view/{$id}/database");
+    }
+
+    public function resetDatabasePassword(Request $request, string $id, string $dbId): Response
+    {
+        $db = Database::queryOne(
+            "SELECT d.*, dh.`host`, dh.`port`, dh.`username` as host_user, dh.`password` as host_pass
+             FROM `databases` d
+             JOIN `database_hosts` dh ON dh.`id` = d.`database_host_id`
+             WHERE d.`id` = :id AND d.`server_id` = :server_id LIMIT 1",
+            ['id' => $dbId, 'server_id' => $id]
+        );
+
+        if (!$db) {
+            Session::flash('error', 'Database not found.');
+            return Response::redirect("/admin/servers/view/{$id}/database");
+        }
+
+        $newPassword = bin2hex(random_bytes(16));
+
+        try {
+            $dsn = "mysql:host={$db['host']};port={$db['port']}";
+            $decryptedPass = Encrypter::decryptString($db['host_pass']);
+            $pdo = new PDO($dsn, $db['host_user'], $decryptedPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]);
+
+            $pdo->exec("ALTER USER '{$db['username']}'@'{$db['remote']}' IDENTIFIED BY '{$newPassword}'");
+            $pdo->exec("FLUSH PRIVILEGES");
+        } catch (\Throwable $e) {
+            Session::flash('error', 'Could not reset password on database host: ' . $e->getMessage());
+            return Response::redirect("/admin/servers/view/{$id}/database");
+        }
+
+        Database::execute(
+            "UPDATE `databases` SET `password` = :pass, `updated_at` = NOW() WHERE `id` = :id",
+            ['pass' => Encrypter::encryptString($newPassword), 'id' => $dbId]
+        );
+
+        Session::flash('success', "Password reset successfully. New Password: {$newPassword}");
+        return Response::redirect("/admin/servers/view/{$id}/database");
+    }
+
+    public function deleteDatabase(Request $request, string $id, string $dbId): Response
+    {
+        $db = Database::queryOne(
+            "SELECT d.*, dh.`host`, dh.`port`, dh.`username` as host_user, dh.`password` as host_pass
+             FROM `databases` d
+             JOIN `database_hosts` dh ON dh.`id` = d.`database_host_id`
+             WHERE d.`id` = :id AND d.`server_id` = :server_id LIMIT 1",
+            ['id' => $dbId, 'server_id' => $id]
+        );
+
+        if ($db) {
+            try {
+                $dsn = "mysql:host={$db['host']};port={$db['port']}";
+                $decryptedPass = Encrypter::decryptString($db['host_pass']);
+                $pdo = new PDO($dsn, $db['host_user'], $decryptedPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 5]);
+
+                $pdo->exec("DROP DATABASE IF EXISTS `{$db['database']}`");
+                $pdo->exec("DROP USER IF EXISTS '{$db['username']}'@'{$db['remote']}'");
+                $pdo->exec("FLUSH PRIVILEGES");
+            } catch (\Throwable) {}
+
+            Database::execute("DELETE FROM `databases` WHERE `id` = :id", ['id' => $dbId]);
+        }
+
+        Session::flash('success', 'Database deleted.');
+        return Response::redirect("/admin/servers/view/{$id}/database");
+    }
+
+    public function mounts(Request $request, string $id): Response
+    {
+        $user = $request->getAttribute('user');
+        $server = Database::queryOne("SELECT * FROM `servers` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        if (!$server) {
+            return Response::redirect('/admin/servers');
+        }
+
+        $mounted = Database::query(
+            "SELECT m.*, ms.`id` as mount_server_id FROM `mount_server` ms
+             JOIN `mounts` m ON m.`id` = ms.`mount_id`
+             WHERE ms.`server_id` = :server_id",
+            ['server_id' => $id]
+        );
+
+        $availableMounts = Database::query(
+            "SELECT m.* FROM `mounts` m
+             WHERE m.`id` NOT IN (SELECT `mount_id` FROM `mount_server` WHERE `server_id` = :server_id)
+             ORDER BY m.`name` ASC",
+            ['server_id' => $id]
+        );
+
+        $html = View::render('admin.servers.mounts', [
+            'user' => $user,
+            'server' => $server,
+            'mounted' => $mounted,
+            'availableMounts' => $availableMounts,
+            'success' => Session::getFlash('success'),
+            'error' => Session::getFlash('error'),
+            'activeAdminTab' => 'servers',
+            'activeServerTab' => 'mounts',
+        ]);
+
+        return Response::html($html);
+    }
+
+    public function addMount(Request $request, string $id): Response
+    {
+        $server = Database::queryOne("SELECT * FROM `servers` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        if (!$server) {
+            return Response::redirect('/admin/servers');
+        }
+
+        $mountId = (int)$request->input('mount_id', 0);
+        if ($mountId > 0) {
+            $exists = Database::queryOne(
+                "SELECT 1 FROM `mount_server` WHERE `server_id` = :s AND `mount_id` = :m LIMIT 1",
+                ['s' => $id, 'm' => $mountId]
+            );
+            if (!$exists) {
+                Database::insert('mount_server', [
+                    'mount_id' => $mountId,
+                    'server_id' => $id,
+                ]);
+            }
+
+            $node = Database::queryOne("SELECT * FROM `nodes` WHERE `id` = :id LIMIT 1", ['id' => $server['node_id']]);
+            if ($node) {
+                try {
+                    WingsClient::syncServer($node, $server['uuid']);
+                } catch (\Throwable) {}
+            }
+        }
+
+        Session::flash('success', 'Mount attached to server.');
+        return Response::redirect("/admin/servers/view/{$id}/mounts");
+    }
+
+    public function deleteMount(Request $request, string $id, string $mountId): Response
+    {
+        $server = Database::queryOne("SELECT * FROM `servers` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        if (!$server) {
+            return Response::redirect('/admin/servers');
+        }
+
+        Database::execute(
+            "DELETE FROM `mount_server` WHERE `server_id` = :s AND `mount_id` = :m",
+            ['s' => $id, 'm' => $mountId]
+        );
+
+        $node = Database::queryOne("SELECT * FROM `nodes` WHERE `id` = :id LIMIT 1", ['id' => $server['node_id']]);
+        if ($node) {
+            try {
+                WingsClient::syncServer($node, $server['uuid']);
+            } catch (\Throwable) {}
+        }
+
+        Session::flash('success', 'Mount detached.');
+        return Response::redirect("/admin/servers/view/{$id}/mounts");
+    }
+
+    public function toggleInstallStatus(Request $request, string $id): Response
+    {
+        $server = Database::queryOne("SELECT * FROM `servers` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        if (!$server) {
+            return Response::redirect('/admin/servers');
+        }
+
+        $newStatus = ($server['status'] === 'installing' || $server['status'] === 'install_failed') ? null : 'installing';
+        Database::execute("UPDATE `servers` SET `status` = :status WHERE `id` = :id", ['status' => $newStatus, 'id' => $id]);
+
+        Session::flash('success', $newStatus === null ? 'Server installation status cleared.' : 'Server marked as installing.');
+        return Response::redirect("/admin/servers/view/{$id}/manage");
     }
 }

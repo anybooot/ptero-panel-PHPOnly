@@ -7,6 +7,7 @@
     </div>
     <div style="display: flex; gap: 8px;">
         <a href="/admin/nests/egg/<?= $egg['id'] ?>/export" class="btn btn-secondary btn-sm" download>Export JSON</a>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="App.openModal('modal-clone-egg')">Clone Egg</button>
         <a href="/admin/nests/view/<?= $egg['nest_id'] ?>" class="btn btn-secondary btn-sm">Back to Nest</a>
         <form action="/admin/nests/egg/<?= $egg['id'] ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this egg?');" style="margin: 0;">
             <?= \Pterodactyl\Core\View::csrf() ?>
@@ -81,3 +82,31 @@
         </div>
     </div>
 </form>
+
+<!-- Clone Egg Modal -->
+<div class="modal-backdrop" id="modal-clone-egg">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3 class="modal-title">Clone Egg</h3>
+            <button class="modal-close" data-modal-close>&times;</button>
+        </div>
+        <form action="/admin/nests/egg/<?= $egg['id'] ?>/clone" method="POST">
+            <?= \Pterodactyl\Core\View::csrf() ?>
+            <div class="modal-body">
+                <p style="color: var(--text-secondary); font-size: 13px;">
+                    This will create an exact duplicate of <strong><?= \Pterodactyl\Core\View::e($egg['name']) ?></strong> including all configuration and variables.
+                </p>
+                <div class="form-group">
+                    <label class="form-label" for="clone-nest">Target Nest</label>
+                    <select id="clone-nest" name="nest_id" class="form-control" required>
+                        <option value="<?= $nest['id'] ?>">Current Nest (<?= \Pterodactyl\Core\View::e($nest['name']) ?>)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+                <button type="submit" class="btn btn-primary">Clone Egg</button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -15,16 +15,19 @@
     <a href="/admin/servers/view/<?= $server['id'] ?>" class="<?= ($activeServerTab ?? '') === 'overview' ? 'active' : '' ?>">Overview</a>
     <a href="/admin/servers/view/<?= $server['id'] ?>/details" class="<?= ($activeServerTab ?? '') === 'details' ? 'active' : '' ?>">Details</a>
     <a href="/admin/servers/view/<?= $server['id'] ?>/build" class="<?= ($activeServerTab ?? '') === 'build' ? 'active' : '' ?>">Build Configuration</a>
+    <a href="/admin/servers/view/<?= $server['id'] ?>/startup" class="<?= ($activeServerTab ?? '') === 'startup' ? 'active' : '' ?>">Startup</a>
+    <a href="/admin/servers/view/<?= $server['id'] ?>/database" class="<?= ($activeServerTab ?? '') === 'database' ? 'active' : '' ?>">Databases</a>
+    <a href="/admin/servers/view/<?= $server['id'] ?>/mounts" class="<?= ($activeServerTab ?? '') === 'mounts' ? 'active' : '' ?>">Mounts</a>
     <a href="/admin/servers/view/<?= $server['id'] ?>/manage" class="<?= ($activeServerTab ?? '') === 'manage' ? 'active' : '' ?>">Manage &amp; Actions</a>
 </nav>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
     <!-- Suspend / Unsuspend -->
     <div class="card">
         <div class="card-header">Server Suspension</div>
         <div class="card-body">
-            <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                Suspending a server will stop its processes and prevent users from starting or modifying it until it is unsuspended.
+            <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 13px;">
+                Suspending a server stops its processes and locks client controls until unsuspended.
             </p>
             <form action="/admin/servers/view/<?= $server['id'] ?>/manage/toggle-suspend" method="POST">
                 <?= \Pterodactyl\Core\View::csrf() ?>
@@ -41,12 +44,28 @@
     <div class="card">
         <div class="card-header">Reinstall Server</div>
         <div class="card-body">
-            <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                Re-executes the egg installation script on the host node. This may overwrite modified core server files.
+            <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 13px;">
+                Re-executes the egg installation script on the host node. Overwrites modified core files.
             </p>
             <form action="/admin/servers/view/<?= $server['id'] ?>/manage/reinstall" method="POST" onsubmit="return confirm('Are you sure you want to trigger a reinstallation?');">
                 <?= \Pterodactyl\Core\View::csrf() ?>
                 <button type="submit" class="btn btn-secondary">Trigger Reinstallation</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Install State Toggle -->
+    <div class="card">
+        <div class="card-header">Installation State</div>
+        <div class="card-body">
+            <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 13px;">
+                Current status: <strong style="color: #60a5fa;"><?= \Pterodactyl\Core\View::e($server['status'] ?: 'normal') ?></strong>. Clear if server is stuck installing.
+            </p>
+            <form action="/admin/servers/view/<?= $server['id'] ?>/manage/toggle-install" method="POST">
+                <?= \Pterodactyl\Core\View::csrf() ?>
+                <button type="submit" class="btn btn-secondary">
+                    <?= in_array($server['status'], ['installing', 'install_failed'], true) ? 'Clear Install State' : 'Mark as Installing' ?>
+                </button>
             </form>
         </div>
     </div>

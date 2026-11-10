@@ -136,8 +136,9 @@ APP_KEY=base64:... (generează cu: php cli.php key:generate)
         <div style="margin-bottom: 16px;">
             <strong style="color: #fff;"><span class="step-num">2</span> Importă structura bazei de date (dacă e instalare nouă)</strong>
             <p style="color: var(--text-secondary); font-size: 13px; margin-left: 32px; margin-top: 4px;">
-                Dacă baza de date este nouă, importă fișierul <code>database/schema/mysql-schema.sql</code> în MySQL/MariaDB (prin phpMyAdmin sau terminal).
+                Rulează comanda de migrare automată din terminal sau comanda completă de instalare:
             </p>
+            <div class="code-box" style="margin-left: 32px;">php cli.php db:migrate<br># Sau instalatorul complet asistat:<br>php cli.php install</div>
         </div>
 
         <div style="margin-bottom: 24px;">

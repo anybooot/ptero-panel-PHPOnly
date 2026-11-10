@@ -54,7 +54,8 @@
                                         <span class="badge badge-success" style="font-size: 10px;">Editable</span>
                                     <?php endif; ?>
                                 </td>
-                                <td style="text-align: right;">
+                                <td style="text-align: right; display: flex; justify-content: flex-end; gap: 6px;">
+                                    <button type="button" class="btn btn-secondary btn-sm" style="padding: 2px 8px;" onclick='openEditVariableModal(<?= json_encode($v) ?>)'>Edit</button>
                                     <form action="/admin/nests/egg/<?= $egg['id'] ?>/variables/<?= $v['id'] ?>" method="POST" onsubmit="return confirm('Delete this variable?');" style="margin: 0;">
                                         <?= \Pterodactyl\Core\View::csrf() ?>
                                         <input type="hidden" name="_method" value="DELETE">
@@ -120,3 +121,68 @@
         </form>
     </div>
 </div>
+
+<!-- Edit Variable Modal -->
+<div class="modal-backdrop" id="modal-edit-variable">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3 class="modal-title">Edit Egg Variable</h3>
+            <button class="modal-close" data-modal-close>&times;</button>
+        </div>
+        <form id="edit-var-form" action="" method="POST">
+            <?= \Pterodactyl\Core\View::csrf() ?>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="edit-var-name">Variable Name</label>
+                    <input type="text" id="edit-var-name" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit-var-desc">Description</label>
+                    <textarea id="edit-var-desc" name="description" class="form-control" rows="2"></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label class="form-label" for="edit-var-env">Environment Variable</label>
+                        <input type="text" id="edit-var-env" name="env_variable" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="edit-var-def">Default Value</label>
+                        <input type="text" id="edit-var-def" name="default_value" class="form-control">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit-var-rules">Validation Rules</label>
+                    <input type="text" id="edit-var-rules" name="rules" class="form-control">
+                </div>
+                <div style="display: flex; gap: 20px; margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-primary);">
+                        <input type="checkbox" id="edit-var-viewable" name="user_viewable" value="1">
+                        <span>User Viewable</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-primary);">
+                        <input type="checkbox" id="edit-var-editable" name="user_editable" value="1">
+                        <span>User Editable</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Variable</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openEditVariableModal(v) {
+    document.getElementById('edit-var-form').action = `/admin/nests/egg/<?= $egg['id'] ?>/variables/${v.id}`;
+    document.getElementById('edit-var-name').value = v.name || '';
+    document.getElementById('edit-var-desc').value = v.description || '';
+    document.getElementById('edit-var-env').value = v.env_variable || '';
+    document.getElementById('edit-var-def').value = v.default_value || '';
+    document.getElementById('edit-var-rules').value = v.rules || '';
+    document.getElementById('edit-var-viewable').checked = Boolean(Number(v.user_viewable));
+    document.getElementById('edit-var-editable').checked = Boolean(Number(v.user_editable));
+    App.openModal('modal-edit-variable');
+}
+</script>
