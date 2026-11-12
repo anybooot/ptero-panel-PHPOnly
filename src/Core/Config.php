@@ -19,6 +19,13 @@ class Config
         }
 
         $envFile = rtrim($basePath, '/\\') . DIRECTORY_SEPARATOR . '.env';
+        if (!file_exists($envFile)) {
+            $exampleFile = rtrim($basePath, '/\\') . DIRECTORY_SEPARATOR . '.env.example';
+            if (file_exists($exampleFile)) {
+                @copy($exampleFile, $envFile);
+            }
+        }
+
         if (file_exists($envFile)) {
             $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
@@ -54,6 +61,13 @@ class Config
         }
 
         self::$loaded = true;
+    }
+
+    public static function set(string $key, mixed $value): void
+    {
+        self::$env[$key] = $value;
+        $_SERVER[$key] = $value;
+        $_ENV[$key] = $value;
     }
 
     public static function get(string $key, mixed $default = null): mixed

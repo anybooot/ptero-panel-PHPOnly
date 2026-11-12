@@ -1,0 +1,63 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-03-26T10:34:12+01:00",
+    "name": "Velocity",
+    "author": "support@pterodactyl.io",
+    "description": "Velocity is a modern, high-performance Minecraft server proxy created by PaperMC.",
+    "features": [
+        "java_version",
+        "pid_limit"
+    ],
+    "docker_images": {
+        "Java 21": "ghcr.io/pterodactyl/yolks:java_21",
+        "Java 17": "ghcr.io/pterodactyl/yolks:java_17"
+    },
+    "file_denylist": [],
+    "startup": "java -Xms128M -XX:MaxRAMPercentage=95.0 -Dterminal.jline=false -Dterminal.ansi=true -jar {{SERVER_JARFILE}}",
+    "config": {
+        "files": "{\r\n    \"velocity.toml\": {\r\n        \"parser\": \"toml\",\r\n        \"find\": {\r\n            \"bind\": \"0.0.0.0:{{server.build.default.port}}\"\r\n        }\r\n    }\r\n}",
+        "startup": "{\r\n    \"done\": \"Listening on \"\r\n}",
+        "logs": "{}",
+        "stop": "end"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/ash\r\n# Velocity Installation Script\r\n# Server Files: /mnt/server\r\nPROJECT=velocity\r\nUSER_AGENT=\"Pterodactyl (https://pterodactyl.io)\"\r\n\r\nif [ -n \"${DL_PATH}\" ]; then\r\n    echo -e \"Using supplied download url: ${DL_PATH}\"\r\n    DOWNLOAD_URL=`eval echo $(echo ${DL_PATH} | sed -e 's/{{\\$/g' -e 's/}}/}/g')`\r\nelse\r\n    echo -e \"Fetching latest version for ${PROJECT}...\"\r\n    VER_EXISTS=`curl --user-agent \"${USER_AGENT}\" -s https://api.papermc.io/v2/projects/${PROJECT} | jq -r --arg VERSION \"$VELOCITY_VERSION\" '.versions[] | select(. == $VERSION)'`\r\n    LATEST_VERSION=`curl --user-agent \"${USER_AGENT}\" -s https://api.papermc.io/v2/projects/${PROJECT} | jq -r '.versions[-1]'`\r\n\r\n    if [ -n \"${VER_EXISTS}\" ]; then\r\n        echo -e \"Using version ${VELOCITY_VERSION}\"\r\n    else\r\n        echo -e \"Version ${VELOCITY_VERSION} not found. Defaulting to latest version ${LATEST_VERSION}\"\r\n        VELOCITY_VERSION=${LATEST_VERSION}\r\n    fi\r\n\r\n    BUILD_EXISTS=`curl --user-agent \"${USER_AGENT}\" -s https://api.papermc.io/v2/projects/${PROJECT}/versions/${VELOCITY_VERSION} | jq -r --arg BUILD \"${BUILD_NUMBER}\" '.builds[] | select(. == ($BUILD | tonumber))'`\r\n    LATEST_BUILD=`curl --user-agent \"${USER_AGENT}\" -s https://api.papermc.io/v2/projects/${PROJECT}/versions/${VELOCITY_VERSION} | jq -r '.builds[-1]'`\r\n\r\n    if [ -n \"${BUILD_EXISTS}\" ]; then\r\n        echo -e \"Using build ${BUILD_NUMBER}\"\r\n    else\r\n        echo -e \"Build ${BUILD_NUMBER} not found. Defaulting to latest build ${LATEST_BUILD}\"\r\n        BUILD_NUMBER=${LATEST_BUILD}\r\n    fi\r\n\r\n    JAR_NAME=`curl --user-agent \"${USER_AGENT}\" -s https://api.papermc.io/v2/projects/${PROJECT}/versions/${VELOCITY_VERSION}/builds/${BUILD_NUMBER} | jq -r '.downloads.application.name'`\r\n    DOWNLOAD_URL=\"https://api.papermc.io/v2/projects/${PROJECT}/versions/${VELOCITY_VERSION}/builds/${BUILD_NUMBER}/downloads/${JAR_NAME}\"\r\nfi\r\n\r\ncd /mnt/server\r\necho -e \"Downloading Velocity from ${DOWNLOAD_URL}...\"\r\ncurl --user-agent \"${USER_AGENT}\" -o ${SERVER_JARFILE} ${DOWNLOAD_URL}\r\necho -e \"Velocity downloaded successfully!\"",
+            "container": "ghcr.io/pterodactyl/installers:alpine",
+            "entrypoint": "ash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Velocity Version",
+            "description": "The version of Velocity to download. Leave as latest to get the newest version.",
+            "env_variable": "VELOCITY_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:20"
+        },
+        {
+            "name": "Build Number",
+            "description": "The build number of Velocity to download. Leave as latest for newest build.",
+            "env_variable": "BUILD_NUMBER",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:20"
+        },
+        {
+            "name": "Server Jar File",
+            "description": "The executable jar file for Velocity.",
+            "env_variable": "SERVER_JARFILE",
+            "default_value": "velocity.jar",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40"
+        }
+    ]
+}

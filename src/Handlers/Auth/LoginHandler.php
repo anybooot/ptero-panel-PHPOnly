@@ -72,14 +72,7 @@ class LoginHandler
         Session::remove('2fa_user_id');
 
         // Log audit event
-        Database::insert('activity_logs', [
-            'ip' => $request->getClientIp(),
-            'event' => 'auth:login',
-            'properties' => json_encode([]),
-            'timestamp' => date('Y-m-d H:i:s'),
-            'actor_id' => $user['id'],
-            'actor_type' => 'user',
-        ]);
+        \Pterodactyl\Core\ActivityLogger::log('auth:login', $user['id'], [], $request);
 
         if ($request->isAjax()) {
             return Response::json(['complete' => true, 'redirect' => '/']);
@@ -92,14 +85,7 @@ class LoginHandler
         Session::start();
         $userId = Session::get('user_id');
         if ($userId) {
-            Database::insert('activity_logs', [
-                'ip' => $request->getClientIp(),
-                'event' => 'auth:logout',
-                'properties' => json_encode([]),
-                'timestamp' => date('Y-m-d H:i:s'),
-                'actor_id' => $userId,
-                'actor_type' => 'user',
-            ]);
+            \Pterodactyl\Core\ActivityLogger::log('auth:logout', $userId, [], $request);
         }
 
         Session::destroy();

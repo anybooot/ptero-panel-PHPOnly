@@ -24,7 +24,10 @@ class ConsoleHandler
 
         // Check view permission
         if (!Gate::hasServerAccess($user, $server)) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have access to this server.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have access to this server.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have access to this server.', 'Access Denied'), 403);
         }
 
         $node = $server['node'];

@@ -58,15 +58,15 @@ class ApiHandler
             return Response::redirect('/admin/api/new');
         }
 
-        $identifier = bin2hex(random_bytes(8));
-        $secretToken = bin2hex(random_bytes(24));
-        $fullKey = "ptla_{$identifier}_{$secretToken}";
+        $identifier = bin2hex(random_bytes(8)); // 16 chars
+        $secretToken = bin2hex(random_bytes(16)); // 32 chars
+        $fullKey = "ptla_{$identifier}{$secretToken}";
 
         Database::insert('api_keys', [
             'user_id' => $user['id'],
             'key_type' => 1, // 1 = Application API Key
             'identifier' => $identifier,
-            'token' => hash('sha256', $fullKey),
+            'token' => \Pterodactyl\Security\Encrypter::encryptString($secretToken),
             'memo' => $memo,
             'allowed_ips' => !empty($allowedIps) ? json_encode(explode("\n", str_replace("\r", "", $allowedIps))) : null,
             'r_servers' => (int)$request->input('r_servers', 3),

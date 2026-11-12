@@ -70,14 +70,7 @@ class TwoFactorHandler
         Session::remove('2fa_pending');
         Session::remove('2fa_user_id');
 
-        Database::insert('activity_logs', [
-            'ip' => $request->getClientIp(),
-            'event' => 'auth:checkpoint',
-            'properties' => json_encode([]),
-            'timestamp' => date('Y-m-d H:i:s'),
-            'actor_id' => $user['id'],
-            'actor_type' => 'user',
-        ]);
+        \Pterodactyl\Core\ActivityLogger::log('auth:checkpoint', $user['id'], [], $request);
 
         if ($request->isAjax()) {
             return Response::json(['complete' => true, 'redirect' => '/']);

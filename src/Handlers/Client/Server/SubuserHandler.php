@@ -21,7 +21,10 @@ class SubuserHandler
         $user = $request->getAttribute('user');
 
         if (!Gate::allows($user, $server, 'user.read')) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to view subusers.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to view subusers.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to view subusers.', 'Access Denied'), 403);
         }
 
         $subusers = Database::query(
@@ -95,6 +98,8 @@ class SubuserHandler
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
+        \Pterodactyl\Core\ActivityLogger::log('server:subuser.create', $user, ['email' => $targetUser['email']], $request, $server);
+
         return Response::json([
             'id' => $id,
             'user' => [
@@ -121,6 +126,8 @@ class SubuserHandler
             'updated_at' => date('Y-m-d H:i:s'),
         ], '`id` = :id AND `server_id` = :server_id', ['id' => $subuserId, 'server_id' => $server['id']]);
 
+        \Pterodactyl\Core\ActivityLogger::log('server:subuser.update', $user, ['subuser_id' => $subuserId], $request, $server);
+
         return Response::json(['success' => true]);
     }
 
@@ -137,6 +144,8 @@ class SubuserHandler
             "DELETE FROM `subusers` WHERE `id` = :id AND `server_id` = :server_id",
             ['id' => $subuserId, 'server_id' => $server['id']]
         );
+
+        \Pterodactyl\Core\ActivityLogger::log('server:subuser.delete', $user, ['subuser_id' => $subuserId], $request, $server);
 
         return Response::noContent();
     }

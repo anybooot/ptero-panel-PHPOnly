@@ -31,9 +31,9 @@ class ServerInstallHandler
         );
 
         return Response::json([
-            'container_image' => $egg['copy_script_container'] ?? 'ghcr.io/pterodactyl/installers:alpine',
-            'entrypoint' => $egg['copy_script_entry'] ?? 'ash',
-            'script' => $egg['copy_script_install'] ?? '',
+            'container_image' => $egg['script_container'] ?? $egg['copy_script_container'] ?? 'ghcr.io/pterodactyl/installers:alpine',
+            'entrypoint' => $egg['script_entry'] ?? $egg['copy_script_entry'] ?? 'ash',
+            'script' => $egg['script_install'] ?? $egg['copy_script_install'] ?? '',
         ]);
     }
 

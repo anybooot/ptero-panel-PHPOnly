@@ -98,7 +98,8 @@ class Database
         );
 
         $stmt = $db->prepare($sql);
-        $stmt->execute($data);
+        self::bindParams($stmt, $data);
+        $stmt->execute();
         return $db->lastInsertId();
     }
 
@@ -115,7 +116,8 @@ class Database
 
         $sql = sprintf("UPDATE `%s` SET %s WHERE %s", $table, implode(', ', $setClauses), $where);
         $stmt = $db->prepare($sql);
-        $stmt->execute(array_merge($params, $whereParams));
+        self::bindParams($stmt, array_merge($params, $whereParams));
+        $stmt->execute();
         return $stmt->rowCount();
     }
 

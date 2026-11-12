@@ -85,8 +85,29 @@ class Request
         if (!$auth && isset($_SERVER['HTTP_AUTHORIZATION'])) {
             $auth = $_SERVER['HTTP_AUTHORIZATION'];
         }
-        if ($auth && preg_match('/Bearer\s+(\S+)/i', $auth, $matches)) {
-            return $matches[1];
+        if (!$auth && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+            $auth = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+        }
+        if (!$auth && function_exists('getallheaders')) {
+            $all = getallheaders();
+            foreach ($all as $k => $v) {
+                if (strtolower($k) === 'authorization') {
+                    $auth = $v;
+                    break;
+                }
+            }
+        }
+        if (!$auth && $this->getHeader('x-api-key')) {
+            return trim((string)$this->getHeader('x-api-key'));
+        }
+        if ($auth) {
+            $auth = trim($auth);
+            if (preg_match('/Bearer\s+(\S+)/i', $auth, $matches)) {
+                return $matches[1];
+            }
+            if (str_starts_with($auth, 'ptlc_') || str_starts_with($auth, 'ptla_')) {
+                return $auth;
+            }
         }
         return null;
     }

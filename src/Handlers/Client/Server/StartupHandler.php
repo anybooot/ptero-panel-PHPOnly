@@ -22,7 +22,10 @@ class StartupHandler
         $user = $request->getAttribute('user');
 
         if (!Gate::allows($user, $server, 'startup.read')) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to view startup configurations.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to view startup configurations.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to view startup configurations.', 'Access Denied'), 403);
         }
 
         $variables = Database::query(
@@ -117,6 +120,8 @@ class StartupHandler
             WingsClient::syncServer($server['node'], $server['uuid']);
         } catch (\Throwable) {
         }
+
+        \Pterodactyl\Core\ActivityLogger::log('server:startup.variable', $user, ['key' => $key, 'value' => $value], $request, $server);
 
         return Response::noContent();
     }

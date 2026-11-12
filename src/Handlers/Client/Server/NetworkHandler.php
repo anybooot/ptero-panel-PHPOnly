@@ -22,7 +22,10 @@ class NetworkHandler
         $user = $request->getAttribute('user');
 
         if (!Gate::allows($user, $server, 'allocation.read')) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to view allocations.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to view allocations.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to view allocations.', 'Access Denied'), 403);
         }
 
         $allocations = Database::query(
@@ -74,6 +77,8 @@ class NetworkHandler
             ['server_id' => $server['id'], 'id' => $alloc['id']]
         );
 
+        \Pterodactyl\Core\ActivityLogger::log('server:allocation.create', $user, ['allocation' => "{$alloc['ip']}:{$alloc['port']}"], $request, $server);
+
         try {
             WingsClient::syncServer($server['node'], $server['uuid']);
         } catch (\Throwable) {
@@ -108,6 +113,8 @@ class NetworkHandler
             'alloc_id' => $alloc['id'],
             'id' => $server['id'],
         ]);
+
+        \Pterodactyl\Core\ActivityLogger::log('server:allocation.primary', $user, ['allocation' => "{$alloc['ip']}:{$alloc['port']}"], $request, $server);
 
         try {
             WingsClient::syncServer($server['node'], $server['uuid']);
@@ -152,6 +159,8 @@ class NetworkHandler
             "UPDATE `allocations` SET `server_id` = NULL, `notes` = NULL WHERE `id` = :id AND `server_id` = :server_id",
             ['id' => $allocationId, 'server_id' => $server['id']]
         );
+
+        \Pterodactyl\Core\ActivityLogger::log('server:allocation.delete', $user, ['allocation_id' => $allocationId], $request, $server);
 
         try {
             WingsClient::syncServer($server['node'], $server['uuid']);

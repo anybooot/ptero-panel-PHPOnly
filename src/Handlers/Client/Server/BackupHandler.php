@@ -23,7 +23,10 @@ class BackupHandler
         $user = $request->getAttribute('user');
 
         if (!Gate::allows($user, $server, 'backup.read')) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to view backups.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to view backups.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to view backups.', 'Access Denied'), 403);
         }
 
         $backups = Database::query(
@@ -85,6 +88,7 @@ class BackupHandler
 
         try {
             WingsClient::createBackup($server['node'], $server['uuid'], $backupUuid, $ignored);
+            \Pterodactyl\Core\ActivityLogger::log('server:backup.create', $user, ['name' => $name, 'uuid' => $backupUuid], $request, $server);
             return Response::json(['id' => $id, 'uuid' => $backupUuid, 'name' => $name]);
         } catch (\Throwable $e) {
             Database::execute("DELETE FROM `backups` WHERE `id` = :id", ['id' => $id]);
@@ -161,6 +165,8 @@ class BackupHandler
             ['lock' => $newLock, 'id' => $backup['id']]
         );
 
+        \Pterodactyl\Core\ActivityLogger::log('server:backup.lock', $user, ['name' => $backup['name'], 'is_locked' => (bool)$newLock], $request, $server);
+
         return Response::json(['is_locked' => (bool)$newLock]);
     }
 
@@ -186,6 +192,7 @@ class BackupHandler
         try {
             Database::execute("UPDATE `servers` SET `status` = 'restoring_backup' WHERE `id` = :id", ['id' => $server['id']]);
             WingsClient::restoreBackup($server['node'], $server['uuid'], $backup['uuid'], null, $truncate);
+            \Pterodactyl\Core\ActivityLogger::log('server:backup.restore', $user, ['name' => $backup['name']], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
             Database::execute("UPDATE `servers` SET `status` = NULL WHERE `id` = :id", ['id' => $server['id']]);
@@ -217,6 +224,7 @@ class BackupHandler
         }
 
         Database::execute("DELETE FROM `backups` WHERE `id` = :id", ['id' => $backup['id']]);
+        \Pterodactyl\Core\ActivityLogger::log('server:backup.delete', $user, ['name' => $backup['name']], $request, $server);
         return Response::noContent();
     }
 }

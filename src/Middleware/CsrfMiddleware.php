@@ -33,7 +33,7 @@ class CsrfMiddleware
             if ($request->isJson() || $request->isAjax()) {
                 return Response::json(['error' => 'CSRF token mismatch. Please refresh and try again.'], 419);
             }
-            return Response::html('<h1>419 Page Expired</h1><p>CSRF token mismatch. Please go back, refresh the page, and try again.</p>', 419);
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(419, 'CSRF security token mismatch or session expired. Please refresh the page and try again.', 'Page Expired'), 419);
         }
 
         return $next($request);

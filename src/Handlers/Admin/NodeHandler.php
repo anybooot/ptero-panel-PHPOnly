@@ -77,31 +77,43 @@ class NodeHandler
             return Response::redirect('/admin/nodes/new');
         }
 
-        $uuid = bin2hex(random_bytes(16));
-        $daemonTokenId = bin2hex(random_bytes(8));
-        $daemonTokenSecret = bin2hex(random_bytes(32));
+        try {
+            $uuid = sprintf(
+                '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0x0fff) | 0x4000,
+                mt_rand(0, 0x3fff) | 0x8000,
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+            );
+            $daemonTokenId = bin2hex(random_bytes(8));
+            $daemonTokenSecret = bin2hex(random_bytes(32));
 
-        $nodeId = Database::insert('nodes', [
-            'uuid' => $uuid,
-            'name' => $name,
-            'location_id' => $locationId,
-            'public' => $request->boolean('public', true) ? 1 : 0,
-            'fqdn' => $fqdn,
-            'scheme' => $scheme,
-            'behind_proxy' => $request->boolean('behind_proxy', false) ? 1 : 0,
-            'maintenance_mode' => $request->boolean('maintenance_mode', false) ? 1 : 0,
-            'memory' => $memory,
-            'memory_overallocate' => $memoryOverallocate,
-            'disk' => $disk,
-            'disk_overallocate' => $diskOverallocate,
-            'upload_size' => $uploadSize,
-            'daemon_token_id' => $daemonTokenId,
-            'daemon_token' => Encrypter::encryptString($daemonTokenSecret),
-            'daemonListen' => $daemonListen,
-            'daemonSFTP' => $daemonSFTP,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
+            $nodeId = Database::insert('nodes', [
+                'uuid' => $uuid,
+                'name' => $name,
+                'location_id' => $locationId,
+                'public' => $request->boolean('public', true) ? 1 : 0,
+                'fqdn' => $fqdn,
+                'scheme' => $scheme,
+                'behind_proxy' => $request->boolean('behind_proxy', false) ? 1 : 0,
+                'maintenance_mode' => $request->boolean('maintenance_mode', false) ? 1 : 0,
+                'memory' => $memory,
+                'memory_overallocate' => $memoryOverallocate,
+                'disk' => $disk,
+                'disk_overallocate' => $diskOverallocate,
+                'upload_size' => $uploadSize,
+                'daemon_token_id' => $daemonTokenId,
+                'daemon_token' => Encrypter::encryptString($daemonTokenSecret),
+                'daemonListen' => $daemonListen,
+                'daemonSFTP' => $daemonSFTP,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            Session::flash('error', 'Failed to create node: ' . $e->getMessage());
+            return Response::redirect('/admin/nodes/new');
+        }
 
         Session::flash('success', 'Node created successfully. You can now configure Wings using the Configuration tab.');
         return Response::redirect("/admin/nodes/view/{$nodeId}/configuration");
@@ -191,6 +203,8 @@ class NodeHandler
         $bearerToken = "{$node['daemon_token_id']}.{$tokenSecret}";
         $sslEnabled = ($node['scheme'] === 'https') ? 'true' : 'false';
 
+        $uploadLimit = (int)($node['upload_size'] ?? $node['uploadSize'] ?? 100);
+
         // Build config.yml content
         $configYml = <<<YAML
 debug: false
@@ -204,7 +218,7 @@ api:
     enabled: {$sslEnabled}
     cert: /etc/letsencrypt/live/{$node['fqdn']}/fullchain.pem
     key: /etc/letsencrypt/live/{$node['fqdn']}/privkey.pem
-  upload_limit: {$node['uploadSize']}
+  upload_limit: {$uploadLimit}
 system:
   data: /var/lib/pterodactyl/volumes
   sftp:

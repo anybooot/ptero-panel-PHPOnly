@@ -18,6 +18,12 @@ class NestHandler
     public function index(Request $request): Response
     {
         $user = $request->getAttribute('user');
+        
+        $eggCount = (int)(Database::queryOne("SELECT COUNT(*) as cnt FROM `eggs`")['cnt'] ?? 0);
+        if ($eggCount === 0) {
+            \Pterodactyl\Core\EggSeeder::seedDefaults();
+        }
+
         $nests = Database::query(
             "SELECT n.*,
                     (SELECT COUNT(*) FROM `eggs` e WHERE e.`nest_id` = n.`id`) as eggs_count,

@@ -60,7 +60,17 @@ class ServerHandler
         $users = Database::query("SELECT `id`, `username`, `email` FROM `users` ORDER BY `username` ASC");
         $nodes = Database::query("SELECT `id`, `name`, `memory`, `disk` FROM `nodes` ORDER BY `name` ASC");
         $nests = Database::query("SELECT `id`, `name` FROM `nests` ORDER BY `name` ASC");
-        $eggs = Database::query("SELECT `id`, `nest_id`, `name`, `startup`, `docker_images`, `image` FROM `eggs` ORDER BY `name` ASC");
+        $eggs = Database::query("SELECT `id`, `nest_id`, `name`, `startup`, `docker_images` FROM `eggs` ORDER BY `name` ASC");
+        if (empty($eggs)) {
+            \Pterodactyl\Core\EggSeeder::seedDefaults();
+            $nests = Database::query("SELECT `id`, `name` FROM `nests` ORDER BY `name` ASC");
+            $eggs = Database::query("SELECT `id`, `nest_id`, `name`, `startup`, `docker_images` FROM `eggs` ORDER BY `name` ASC");
+        }
+        foreach ($eggs as &$egg) {
+            $images = json_decode((string)($egg['docker_images'] ?? ''), true);
+            $egg['image'] = is_array($images) && !empty($images) ? (is_string(reset($images)) ? reset($images) : '') : 'ghcr.io/pterodactyl/yolks:java_17';
+        }
+        unset($egg);
 
         $html = View::render('admin.servers.new', [
             'user' => $user,
@@ -116,13 +126,21 @@ class ServerHandler
         }
 
         if ($startup === '') {
-            $startup = $egg['startup'];
+            $startup = (string)($egg['startup'] ?? '');
         }
         if ($image === '') {
-            $image = $egg['image'];
+            $images = json_decode((string)($egg['docker_images'] ?? ''), true);
+            $image = is_array($images) && !empty($images) ? (is_string(reset($images)) ? reset($images) : (string)key($images)) : 'ghcr.io/pterodactyl/yolks:java_17';
         }
 
-        $uuid = bin2hex(random_bytes(16));
+        $uuid = sprintf(
+            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+        );
         $uuidShort = substr($uuid, 0, 8);
 
         $serverId = Database::insert('servers', [
@@ -442,7 +460,12 @@ class ServerHandler
 
         $egg = Database::queryOne("SELECT * FROM `eggs` WHERE `id` = :id LIMIT 1", ['id' => $server['egg_id']]);
         $nests = Database::query("SELECT * FROM `nests` ORDER BY `name` ASC");
-        $eggs = Database::query("SELECT `id`, `nest_id`, `name`, `startup`, `image`, `docker_images` FROM `eggs` ORDER BY `name` ASC");
+        $eggs = Database::query("SELECT `id`, `nest_id`, `name`, `startup`, `docker_images` FROM `eggs` ORDER BY `name` ASC");
+        foreach ($eggs as &$eg) {
+            $images = json_decode((string)($eg['docker_images'] ?? ''), true);
+            $eg['image'] = is_array($images) && !empty($images) ? (is_string(reset($images)) ? reset($images) : '') : 'ghcr.io/pterodactyl/yolks:java_17';
+        }
+        unset($eg);
 
         $variables = Database::query(
             "SELECT ev.*, sv.`variable_value` as `server_value`

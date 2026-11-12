@@ -20,7 +20,7 @@ class AdminMiddleware
             if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
                 return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have administrative privileges.']]], 403);
             }
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to access the administrator panel.</p>', 403);
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have administrative privileges to access this area.', 'Access Denied'), 403);
         }
 
         return $next($request);

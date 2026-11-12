@@ -72,14 +72,16 @@ class Application
                 return Response::json($payload, 500);
             }
 
-            // Check if this is a Database Connection Error or missing configuration
-            $isDbError = str_contains($e->getMessage(), 'Database connection error') || $e instanceof \PDOException;
-            if ($isDbError) {
+            // Only show DB setup guide if the MySQL server connection itself failed or database is not reachable
+            $isDbConnectionError = str_contains($e->getMessage(), 'Database connection error')
+                || (str_contains($e->getMessage(), 'Connection refused') || str_contains($e->getMessage(), 'Access denied for user') || str_contains($e->getMessage(), 'Unknown database'));
+
+            if ($isDbConnectionError) {
                 return Response::html($this->renderDbErrorGuide($e->getMessage()), 500);
             }
 
-            $msg = $debug ? nl2br(htmlspecialchars($e->getMessage() . "\n\n" . $e->getTraceAsString())) : 'An internal error occurred. Please try again later.';
-            return Response::html("<h1>500 Internal Server Error</h1><p>{$msg}</p>", 500);
+            $msg = $debug ? $e->getMessage() : 'An unexpected internal server error occurred. Please try again later.';
+            return Response::html(ErrorRenderer::render(500, $msg, 'Internal Server Error', $e), 500);
         }
     }
 

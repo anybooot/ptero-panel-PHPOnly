@@ -164,13 +164,16 @@ class Router
         }
 
         if ($methodNotAllowed) {
-            return Response::json(['error' => 'Method Not Allowed'], 405);
+            if ($request->isJson() || str_starts_with($path, '/api/')) {
+                return Response::json(['error' => 'Method Not Allowed'], 405);
+            }
+            return Response::html(ErrorRenderer::render(405, 'The requested HTTP method is not allowed for this route.', 'Method Not Allowed'), 405);
         }
 
         if ($request->isJson() || str_starts_with($path, '/api/')) {
             return Response::json(['error' => 'Resource Not Found'], 404);
         }
 
-        return Response::html('<h1>404 Not Found</h1><p>The requested page was not found.</p>', 404);
+        return Response::html(ErrorRenderer::render(404, 'The requested page or route could not be found.', 'Page Not Found'), 404);
     }
 }

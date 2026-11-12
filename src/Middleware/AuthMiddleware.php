@@ -16,27 +16,43 @@ class AuthMiddleware
 {
     public function handle(Request $request, callable $next): Response
     {
+        // 1. Prioritize Bearer token authentication for API requests
+        $bearer = $request->getBearerToken();
+        if ($bearer !== null && $bearer !== '') {
+            $apiUser = \Pterodactyl\Security\ApiKeyAuth::authenticate($request, \Pterodactyl\Security\ApiKeyAuth::TYPE_CLIENT);
+            if ($apiUser) {
+                $request->setAttribute('user', $apiUser);
+                $request->setAttribute('api_key', $apiUser['api_key'] ?? null);
+                return $next($request);
+            }
+
+            // If an explicit API key was provided and is invalid or revoked, return 401
+            return Response::json([
+                'errors' => [
+                    [
+                        'code' => 'UnauthorizedHttpException',
+                        'status' => '401',
+                        'detail' => 'The API key provided is invalid, revoked, or IP restricted.',
+                    ],
+                ],
+            ], 401);
+        }
+
+        // 2. Session authentication for web / cookie users
         Session::start();
         $userId = Session::get('user_id');
 
-        // Check bearer token for Client API
-        if (!$userId) {
-            $bearer = $request->getBearerToken();
-            if ($bearer && str_starts_with($bearer, 'ptlc_')) {
-                // Client API Key check: table api_keys
-                $key = Database::queryOne(
-                    "SELECT `user_id`, `r_servers` FROM `api_keys` WHERE `token` = :token AND `key_type` = 2 LIMIT 1",
-                    ['token' => hash('sha256', $bearer)]
-                );
-                if ($key) {
-                    $userId = (int)$key['user_id'];
-                }
-            }
-        }
-
         if (!$userId) {
             if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
-                return Response::json(['errors' => [['code' => 'UnauthorizedHttpException', 'status' => '401', 'detail' => 'You must be logged in to access this resource.']]], 401);
+                return Response::json([
+                    'errors' => [
+                        [
+                            'code' => 'UnauthorizedHttpException',
+                            'status' => '401',
+                            'detail' => 'You must be logged in or provide a valid API key to access this resource.',
+                        ],
+                    ],
+                ], 401);
             }
             return Response::redirect('/auth/login');
         }
@@ -44,11 +60,17 @@ class AuthMiddleware
         $user = Database::queryOne("SELECT * FROM `users` WHERE `id` = :id LIMIT 1", ['id' => $userId]);
         if (!$user) {
             Session::destroy();
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'UnauthorizedHttpException', 'status' => '401', 'detail' => 'Session user not found.']]], 401);
+            }
             return Response::redirect('/auth/login');
         }
 
         // Check if 2FA checkpoint is pending
         if (Session::get('2fa_pending') === true && !str_starts_with($request->getPath(), '/auth/')) {
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'TwoFactorRequiredException', 'status' => '403', 'detail' => 'Two-factor checkpoint pending.']]], 403);
+            }
             return Response::redirect('/auth/checkpoint');
         }
 

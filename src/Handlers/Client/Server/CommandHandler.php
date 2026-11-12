@@ -32,14 +32,13 @@ class CommandHandler
         try {
             WingsClient::sendCommands($server['node'], $server['uuid'], $command);
 
-            Database::insert('activity_logs', [
-                'ip' => $request->getClientIp(),
-                'event' => 'server:command',
-                'properties' => json_encode(['command' => $command]),
-                'timestamp' => date('Y-m-d H:i:s'),
-                'actor_id' => $user['id'],
-                'actor_type' => 'user',
-            ]);
+            \Pterodactyl\Core\ActivityLogger::log(
+                'server:command',
+                $user,
+                ['command' => $command],
+                $request,
+                $server
+            );
 
             return Response::noContent();
         } catch (\Throwable $e) {

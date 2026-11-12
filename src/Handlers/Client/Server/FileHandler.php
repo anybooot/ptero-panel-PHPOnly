@@ -22,7 +22,10 @@ class FileHandler
         $user = $request->getAttribute('user');
 
         if (!Gate::allows($user, $server, 'file.read')) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to view files.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to view files.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to view files.', 'Access Denied'), 403);
         }
 
         $directory = trim((string)$request->input('directory', '/'));
@@ -62,7 +65,10 @@ class FileHandler
         $user = $request->getAttribute('user');
 
         if (!Gate::allows($user, $server, 'file.read-content')) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to read file contents.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to read file contents.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to read file contents.', 'Access Denied'), 403);
         }
 
         $file = (string)$request->input('file', '');
@@ -91,6 +97,28 @@ class FileHandler
         return Response::html($html);
     }
 
+    public function getFileContents(Request $request): Response
+    {
+        $server = $request->getAttribute('server');
+        $user = $request->getAttribute('user');
+
+        if (!Gate::allows($user, $server, 'file.read-content')) {
+            return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to read file contents.']]], 403);
+        }
+
+        $file = (string)$request->input('file', '');
+        if ($file === '') {
+            return Response::json(['errors' => [['code' => 'BadRequestHttpException', 'status' => '400', 'detail' => 'A file query parameter is required.']]], 400);
+        }
+
+        try {
+            $content = WingsClient::getFileContents($server['node'], $server['uuid'], $file);
+            return new Response($content, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
+        } catch (\Throwable $e) {
+            return Response::json(['errors' => [['code' => 'NotFoundHttpException', 'status' => '404', 'detail' => 'File not found on remote node.']]], 404);
+        }
+    }
+
     public function writeFile(Request $request): Response
     {
         $server = $request->getAttribute('server');
@@ -109,6 +137,7 @@ class FileHandler
 
         try {
             WingsClient::writeFile($server['node'], $server['uuid'], $file, (string)$content);
+            \Pterodactyl\Core\ActivityLogger::log('server:file.write', $user, ['file' => $file], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 500);
@@ -129,6 +158,7 @@ class FileHandler
 
         try {
             WingsClient::renameFiles($server['node'], $server['uuid'], $root, $files);
+            \Pterodactyl\Core\ActivityLogger::log('server:file.rename', $user, ['files' => $files], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 500);
@@ -148,6 +178,7 @@ class FileHandler
 
         try {
             WingsClient::copyFile($server['node'], $server['uuid'], $location);
+            \Pterodactyl\Core\ActivityLogger::log('server:file.copy', $user, ['location' => $location], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 500);
@@ -168,6 +199,7 @@ class FileHandler
 
         try {
             WingsClient::deleteFiles($server['node'], $server['uuid'], $root, $files);
+            \Pterodactyl\Core\ActivityLogger::log('server:file.delete', $user, ['files' => $files], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 500);
@@ -192,6 +224,7 @@ class FileHandler
 
         try {
             WingsClient::createDirectory($server['node'], $server['uuid'], $path, $name);
+            \Pterodactyl\Core\ActivityLogger::log('server:file.create-directory', $user, ['directory' => $path, 'name' => $name], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 500);
@@ -232,6 +265,7 @@ class FileHandler
 
         try {
             $res = WingsClient::compressFiles($server['node'], $server['uuid'], $root, $files);
+            \Pterodactyl\Core\ActivityLogger::log('server:file.compress', $user, ['files' => $files], $request, $server);
             return Response::json(['data' => $res]);
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 500);
@@ -252,6 +286,7 @@ class FileHandler
 
         try {
             WingsClient::decompressFile($server['node'], $server['uuid'], $root, $file);
+            \Pterodactyl\Core\ActivityLogger::log('server:file.decompress', $user, ['file' => $file], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 500);

@@ -23,7 +23,10 @@ class DatabaseHandler
         $user = $request->getAttribute('user');
 
         if (!Gate::allows($user, $server, 'database.read')) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to view databases.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to view databases.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to view databases.', 'Access Denied'), 403);
         }
 
         $databases = Database::query(
@@ -128,6 +131,8 @@ class DatabaseHandler
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
+        \Pterodactyl\Core\ActivityLogger::log('server:database.create', $user, ['database' => $finalDbName], $request, $server);
+
         return Response::json([
             'id' => $id,
             'database' => $finalDbName,
@@ -179,6 +184,8 @@ class DatabaseHandler
             ['pwd' => Encrypter::encryptString($newPassword), 'id' => $db['id']]
         );
 
+        \Pterodactyl\Core\ActivityLogger::log('server:database.rotate-password', $user, ['database' => $db['database']], $request, $server);
+
         return Response::json(['password' => $newPassword]);
     }
 
@@ -216,6 +223,7 @@ class DatabaseHandler
         }
 
         Database::execute("DELETE FROM `databases` WHERE `id` = :id", ['id' => $db['id']]);
+        \Pterodactyl\Core\ActivityLogger::log('server:database.delete', $user, ['database' => $db['database']], $request, $server);
         return Response::noContent();
     }
 }

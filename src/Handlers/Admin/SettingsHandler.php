@@ -98,12 +98,34 @@ class SettingsHandler
         $recaptchaEnabled = self::getSetting('settings::recaptcha:enabled', 'false') === 'true';
         $recaptchaSite = self::getSetting('settings::recaptcha:website_key', '');
         $recaptchaSecret = self::getSetting('settings::recaptcha:secret_key', '');
+        $behindProxy = self::getSetting('settings::app:behind_proxy', 'false') === 'true';
+        $twoFactorRequirement = (int)self::getSetting('settings::auth:2fa_required', 0);
+        $consoleCount = (int)self::getSetting('settings::pterodactyl:console:count', 200);
+        $consoleFrequency = (int)self::getSetting('settings::pterodactyl:console:frequency', 0);
+        $allocationsEnabled = self::getSetting('settings::pterodactyl:client_features:allocations:enabled', 'true') === 'true';
+        $allocRangeStart = (int)self::getSetting('settings::pterodactyl:client_features:allocations:range_start', 1024);
+        $allocRangeEnd = (int)self::getSetting('settings::pterodactyl:client_features:allocations:range_end', 65535);
+        $pwdMinLength = (int)self::getSetting('settings::auth:password_min_length', 8);
+        $pwdRequireMixed = self::getSetting('settings::auth:password_require_uppercase', 'false') === 'true';
+        $pwdRequireNumbers = self::getSetting('settings::auth:password_require_numbers', 'false') === 'true';
+        $pwdRequireSymbols = self::getSetting('settings::auth:password_require_symbols', 'false') === 'true';
 
         $html = View::render('admin.settings.advanced', [
             'user' => $user,
             'recaptchaEnabled' => $recaptchaEnabled,
             'recaptchaSite' => $recaptchaSite,
             'recaptchaSecret' => $recaptchaSecret,
+            'behindProxy' => $behindProxy,
+            'twoFactorRequirement' => $twoFactorRequirement,
+            'consoleCount' => $consoleCount,
+            'consoleFrequency' => $consoleFrequency,
+            'allocationsEnabled' => $allocationsEnabled,
+            'allocRangeStart' => $allocRangeStart,
+            'allocRangeEnd' => $allocRangeEnd,
+            'pwdMinLength' => $pwdMinLength,
+            'pwdRequireMixed' => $pwdRequireMixed,
+            'pwdRequireNumbers' => $pwdRequireNumbers,
+            'pwdRequireSymbols' => $pwdRequireSymbols,
             'success' => Session::getFlash('success'),
             'error' => Session::getFlash('error'),
             'activeAdminTab' => 'settings',
@@ -122,7 +144,19 @@ class SettingsHandler
             self::setSetting('settings::recaptcha:secret_key', $secret);
         }
 
-        Session::flash('success', 'Advanced settings updated.');
+        self::setSetting('settings::app:behind_proxy', $request->boolean('app:behind_proxy', false) ? 'true' : 'false');
+        self::setSetting('settings::auth:2fa_required', (string)(int)$request->input('auth:2fa_required', 0));
+        self::setSetting('settings::pterodactyl:console:count', (string)max(50, min(1000, (int)$request->input('pterodactyl:console:count', 200))));
+        self::setSetting('settings::pterodactyl:console:frequency', (string)max(0, min(5000, (int)$request->input('pterodactyl:console:frequency', 0))));
+        self::setSetting('settings::pterodactyl:client_features:allocations:enabled', $request->boolean('pterodactyl:client_features:allocations:enabled', false) ? 'true' : 'false');
+        self::setSetting('settings::pterodactyl:client_features:allocations:range_start', (string)(int)$request->input('pterodactyl:client_features:allocations:range_start', 1024));
+        self::setSetting('settings::pterodactyl:client_features:allocations:range_end', (string)(int)$request->input('pterodactyl:client_features:allocations:range_end', 65535));
+        self::setSetting('settings::auth:password_min_length', (string)max(8, min(64, (int)$request->input('auth:password_min_length', 8))));
+        self::setSetting('settings::auth:password_require_uppercase', $request->boolean('auth:password_require_uppercase', false) ? 'true' : 'false');
+        self::setSetting('settings::auth:password_require_numbers', $request->boolean('auth:password_require_numbers', false) ? 'true' : 'false');
+        self::setSetting('settings::auth:password_require_symbols', $request->boolean('auth:password_require_symbols', false) ? 'true' : 'false');
+
+        Session::flash('success', 'Advanced settings updated successfully.');
         return Response::redirect('/admin/settings/advanced');
     }
 

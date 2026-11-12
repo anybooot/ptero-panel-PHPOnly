@@ -65,16 +65,21 @@ class DatabaseHostHandler
             return Response::redirect('/admin/databases');
         }
 
-        Database::insert('database_hosts', [
-            'name' => $name,
-            'host' => $host,
-            'port' => $port,
-            'username' => $username,
-            'password' => Encrypter::encryptString($password),
-            'node_id' => $nodeId,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-        ]);
+        try {
+            Database::insert('database_hosts', [
+                'name' => $name,
+                'host' => $host,
+                'port' => $port,
+                'username' => $username,
+                'password' => Encrypter::encryptString($password),
+                'node_id' => $nodeId,
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+        } catch (\Throwable $e) {
+            Session::flash('error', 'Failed to save database host: ' . $e->getMessage());
+            return Response::redirect('/admin/databases');
+        }
 
         Session::flash('success', 'Database Host added successfully.');
         return Response::redirect('/admin/databases');

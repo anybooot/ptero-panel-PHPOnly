@@ -23,7 +23,8 @@ class EggConfigurator
         }
 
         // Parse startup configuration
-        $startupRaw = !empty($egg['inherit_config_startup']) ? json_decode($egg['inherit_config_startup'], true) : [];
+        $startupContent = $egg['config_startup'] ?? $egg['inherit_config_startup'] ?? '';
+        $startupRaw = !empty($startupContent) ? json_decode((string)$startupContent, true) : [];
         $done = $startupRaw['done'] ?? [];
         $startup = [
             'done' => is_string($done) ? [$done] : (is_array($done) ? $done : []),
@@ -32,7 +33,7 @@ class EggConfigurator
         ];
 
         // Parse stop configuration
-        $stopRaw = (string)($egg['inherit_config_stop'] ?? 'stop');
+        $stopRaw = (string)($egg['config_stop'] ?? $egg['inherit_config_stop'] ?? 'stop');
         if (str_starts_with($stopRaw, '^')) {
             $stop = [
                 'type' => 'signal',
@@ -46,7 +47,8 @@ class EggConfigurator
         }
 
         // Parse and replace config files
-        $configsRaw = !empty($egg['inherit_config_files']) ? json_decode($egg['inherit_config_files'], true) : [];
+        $filesContent = $egg['config_files'] ?? $egg['inherit_config_files'] ?? '';
+        $configsRaw = !empty($filesContent) ? json_decode((string)$filesContent, true) : [];
         $configs = [];
 
         if (is_array($configsRaw)) {

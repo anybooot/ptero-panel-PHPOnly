@@ -22,7 +22,10 @@ class ScheduleHandler
         $user = $request->getAttribute('user');
 
         if (!Gate::allows($user, $server, 'schedule.read')) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to view schedules.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to view schedules.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to view schedules.', 'Access Denied'), 403);
         }
 
         $schedules = Database::query(
@@ -52,7 +55,10 @@ class ScheduleHandler
         $user = $request->getAttribute('user');
 
         if (!Gate::allows($user, $server, 'schedule.read')) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to view schedules.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to view schedules.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to view schedules.', 'Access Denied'), 403);
         }
 
         $schedule = Database::queryOne(
@@ -61,7 +67,10 @@ class ScheduleHandler
         );
 
         if (!$schedule) {
-            return Response::html('<h1>404 Not Found</h1><p>Schedule not found.</p>', 404);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'NotFoundHttpException', 'status' => '404', 'detail' => 'Schedule not found.']]], 404);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(404, 'The requested schedule could not be found.', 'Schedule Not Found'), 404);
         }
 
         $tasks = Database::query(
@@ -113,6 +122,8 @@ class ScheduleHandler
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
+        \Pterodactyl\Core\ActivityLogger::log('server:schedule.create', $user, ['name' => $name], $request, $server);
+
         return Response::json(['id' => $id, 'redirect' => "/server/{$server['uuidShort']}/schedules/{$id}"]);
     }
 
@@ -137,6 +148,8 @@ class ScheduleHandler
             'updated_at' => date('Y-m-d H:i:s'),
         ], '`id` = :id AND `server_id` = :server_id', ['id' => $scheduleId, 'server_id' => $server['id']]);
 
+        \Pterodactyl\Core\ActivityLogger::log('server:schedule.update', $user, ['schedule_id' => $scheduleId], $request, $server);
+
         return Response::json(['success' => true]);
     }
 
@@ -154,6 +167,8 @@ class ScheduleHandler
             "DELETE FROM `schedules` WHERE `id` = :id AND `server_id` = :server_id",
             ['id' => $scheduleId, 'server_id' => $server['id']]
         );
+
+        \Pterodactyl\Core\ActivityLogger::log('server:schedule.delete', $user, ['schedule_id' => $scheduleId], $request, $server);
 
         return Response::noContent();
     }
@@ -193,6 +208,8 @@ class ScheduleHandler
             "UPDATE `schedules` SET `last_run_at` = NOW() WHERE `id` = :id",
             ['id' => $scheduleId]
         );
+
+        \Pterodactyl\Core\ActivityLogger::log('server:schedule.execute', $user, ['schedule_id' => $scheduleId], $request, $server);
 
         return Response::noContent();
     }

@@ -74,6 +74,8 @@ class SettingsHandler
         } catch (\Throwable) {
         }
 
+        \Pterodactyl\Core\ActivityLogger::log('server:settings.rename', $user, ['name' => $name], $request, $server);
+
         return Response::noContent();
     }
 
@@ -89,6 +91,7 @@ class SettingsHandler
         try {
             Database::execute("UPDATE `servers` SET `status` = 'installing' WHERE `id` = :id", ['id' => $server['id']]);
             WingsClient::reinstallServer($server['node'], $server['uuid']);
+            \Pterodactyl\Core\ActivityLogger::log('server:settings.reinstall', $user, [], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
             Database::execute("UPDATE `servers` SET `status` = NULL WHERE `id` = :id", ['id' => $server['id']]);
@@ -116,6 +119,8 @@ class SettingsHandler
             WingsClient::syncServer($server['node'], $server['uuid']);
         } catch (\Throwable) {
         }
+
+        \Pterodactyl\Core\ActivityLogger::log('server:settings.rename', $user, ['name' => $name], $request, $server);
 
         return Response::noContent();
     }

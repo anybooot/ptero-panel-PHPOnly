@@ -16,6 +16,7 @@ use Pterodactyl\Handlers\Client\Server;
 use Pterodactyl\Handlers\Remote;
 use Pterodactyl\Handlers\Admin;
 use Pterodactyl\Handlers\ApplicationApi;
+use Pterodactyl\Handlers\ClientApi;
 
 class Routes
 {
@@ -45,43 +46,112 @@ class Routes
 
         // ================= APPLICATION API =================
         $router->group(['prefix' => '/api/application'], function (Router $r) {
+            // Users
             $r->get('/users', [ApplicationApi\ApplicationApiController::class, 'listUsers']);
+            $r->post('/users', [ApplicationApi\ApplicationApiController::class, 'createUser']);
             $r->get('/users/{id}', [ApplicationApi\ApplicationApiController::class, 'viewUser']);
+            $r->patch('/users/{id}', [ApplicationApi\ApplicationApiController::class, 'updateUser']);
+            $r->delete('/users/{id}', [ApplicationApi\ApplicationApiController::class, 'deleteUser']);
+            $r->get('/users/external/{externalId}', [ApplicationApi\ApplicationApiController::class, 'viewUserExternal']);
+
+            // Nodes
             $r->get('/nodes', [ApplicationApi\ApplicationApiController::class, 'listNodes']);
+            $r->post('/nodes', [ApplicationApi\ApplicationApiController::class, 'createNode']);
             $r->get('/nodes/{id}', [ApplicationApi\ApplicationApiController::class, 'viewNode']);
+            $r->get('/nodes/{id}/configuration', [ApplicationApi\ApplicationApiController::class, 'viewNodeConfiguration']);
+            $r->delete('/nodes/{id}', [ApplicationApi\ApplicationApiController::class, 'deleteNode']);
+            $r->get('/nodes/{id}/allocations', [ApplicationApi\ApplicationApiController::class, 'listNodeAllocations']);
+            $r->post('/nodes/{id}/allocations', [ApplicationApi\ApplicationApiController::class, 'createNodeAllocations']);
+            $r->delete('/nodes/{id}/allocations/{allocationId}', [ApplicationApi\ApplicationApiController::class, 'deleteNodeAllocation']);
+
+            // Locations
             $r->get('/locations', [ApplicationApi\ApplicationApiController::class, 'listLocations']);
+            $r->post('/locations', [ApplicationApi\ApplicationApiController::class, 'createLocation']);
+            $r->get('/locations/{id}', [ApplicationApi\ApplicationApiController::class, 'viewLocation']);
+            $r->delete('/locations/{id}', [ApplicationApi\ApplicationApiController::class, 'deleteLocation']);
+
+            // Servers
             $r->get('/servers', [ApplicationApi\ApplicationApiController::class, 'listServers']);
+            $r->post('/servers', [ApplicationApi\ApplicationApiController::class, 'createServer']);
             $r->get('/servers/{id}', [ApplicationApi\ApplicationApiController::class, 'viewServer']);
+            $r->get('/servers/external/{externalId}', [ApplicationApi\ApplicationApiController::class, 'viewServerExternal']);
+            $r->patch('/servers/{id}/details', [ApplicationApi\ApplicationApiController::class, 'updateServerDetails']);
+            $r->patch('/servers/{id}/build', [ApplicationApi\ApplicationApiController::class, 'updateServerBuild']);
+            $r->patch('/servers/{id}/startup', [ApplicationApi\ApplicationApiController::class, 'updateServerStartup']);
+            $r->post('/servers/{id}/suspend', [ApplicationApi\ApplicationApiController::class, 'suspendServer']);
+            $r->post('/servers/{id}/unsuspend', [ApplicationApi\ApplicationApiController::class, 'unsuspendServer']);
+            $r->post('/servers/{id}/reinstall', [ApplicationApi\ApplicationApiController::class, 'reinstallServer']);
+            $r->delete('/servers/{id}', [ApplicationApi\ApplicationApiController::class, 'deleteServer']);
+            $r->delete('/servers/{id}/force', [ApplicationApi\ApplicationApiController::class, 'deleteServer']);
+            $r->get('/servers/{id}/databases', [ApplicationApi\ApplicationApiController::class, 'listServerDatabases']);
+            $r->post('/servers/{id}/databases', [ApplicationApi\ApplicationApiController::class, 'createServerDatabase']);
+            $r->post('/servers/{id}/databases/{databaseId}/reset-password', [ApplicationApi\ApplicationApiController::class, 'resetServerDatabasePassword']);
+            $r->delete('/servers/{id}/databases/{databaseId}', [ApplicationApi\ApplicationApiController::class, 'deleteServerDatabase']);
+
+            // Nests & Eggs
             $r->get('/nests', [ApplicationApi\ApplicationApiController::class, 'listNests']);
+            $r->get('/nests/{id}', [ApplicationApi\ApplicationApiController::class, 'viewNest']);
+            $r->get('/nests/{id}/eggs', [ApplicationApi\ApplicationApiController::class, 'listNestEggs']);
+            $r->get('/nests/{nestId}/eggs/{eggId}', [ApplicationApi\ApplicationApiController::class, 'viewNestEgg']);
+
+            // Database Hosts
+            $r->get('/database-hosts', [ApplicationApi\ApplicationApiController::class, 'listDatabaseHosts']);
+            $r->post('/database-hosts', [ApplicationApi\ApplicationApiController::class, 'createDatabaseHost']);
+            $r->get('/database-hosts/{id}', [ApplicationApi\ApplicationApiController::class, 'viewDatabaseHost']);
+            $r->delete('/database-hosts/{id}', [ApplicationApi\ApplicationApiController::class, 'deleteDatabaseHost']);
         });
 
         // ================= CLIENT DASHBOARD & ACCOUNT (Auth required) =================
         $router->group(['middleware' => [AuthMiddleware::class]], function (Router $r) {
             $r->get('/', [Client\DashboardHandler::class, 'index']);
 
-            // Account
+            // Client Server Listing API
+            $r->get('/api/client', [ClientApi\ClientApiController::class, 'listServers']);
+            $r->get('/api/client/permissions', [ClientApi\ClientApiController::class, 'getPermissions']);
+
+            // Client Account API & Web Views
             $r->get('/account', [Client\AccountHandler::class, 'overview']);
+            $r->get('/api/client/account', [ClientApi\ClientApiController::class, 'getAccount']);
             $r->post('/account/email', [Client\AccountHandler::class, 'updateEmail'], [CsrfMiddleware::class]);
+            $r->put('/api/client/account/email', [Client\AccountHandler::class, 'updateEmail']);
             $r->post('/account/password', [Client\AccountHandler::class, 'updatePassword'], [CsrfMiddleware::class]);
+            $r->put('/api/client/account/password', [Client\AccountHandler::class, 'updatePassword']);
+            
             $r->get('/account/two-factor', [Client\AccountHandler::class, 'getTwoFactor']);
+            $r->get('/api/client/account/two-factor', [Client\AccountHandler::class, 'getTwoFactor']);
             $r->post('/account/two-factor', [Client\AccountHandler::class, 'enableTwoFactor']);
+            $r->post('/api/client/account/two-factor', [Client\AccountHandler::class, 'enableTwoFactor']);
             $r->post('/account/two-factor/disable', [Client\AccountHandler::class, 'disableTwoFactor']);
+            $r->post('/api/client/account/two-factor/disable', [Client\AccountHandler::class, 'disableTwoFactor']);
 
             $r->get('/account/api', [Client\AccountHandler::class, 'apiKeys']);
+            $r->get('/api/client/account/api-keys', [Client\AccountHandler::class, 'apiKeys']);
             $r->post('/account/api', [Client\AccountHandler::class, 'createApiKey'], [CsrfMiddleware::class]);
+            $r->post('/api/client/account/api-keys', [Client\AccountHandler::class, 'createApiKey']);
             $r->delete('/account/api/{identifier}', [Client\AccountHandler::class, 'deleteApiKey']);
+            $r->delete('/api/client/account/api-keys/{identifier}', [Client\AccountHandler::class, 'deleteApiKey']);
 
             $r->get('/account/ssh', [Client\AccountHandler::class, 'sshKeys']);
+            $r->get('/api/client/account/ssh-keys', [Client\AccountHandler::class, 'sshKeys']);
             $r->post('/account/ssh', [Client\AccountHandler::class, 'createSshKey'], [CsrfMiddleware::class]);
+            $r->post('/api/client/account/ssh-keys', [Client\AccountHandler::class, 'createSshKey']);
             $r->post('/account/ssh/delete', [Client\AccountHandler::class, 'deleteSshKey']);
+            $r->delete('/account/ssh/{fingerprint}', [Client\AccountHandler::class, 'deleteSshKey']);
+            $r->delete('/api/client/account/ssh-keys/{fingerprint}', [Client\AccountHandler::class, 'deleteSshKey']);
 
             $r->get('/account/activity', [Client\AccountHandler::class, 'activity']);
+            $r->get('/api/client/account/activity', [Client\AccountHandler::class, 'activity']);
         });
 
         // ================= CLIENT SERVER CONTROL =================
         $router->group(['middleware' => [AuthMiddleware::class, ServerAccessMiddleware::class]], function (Router $r) {
-            // Console & WebSocket
+            // Server View & Details API
             $r->get('/server/{server}', [Server\ConsoleHandler::class, 'index']);
+            $r->get('/api/client/servers/{server}', [ClientApi\ClientApiController::class, 'viewServer']);
+            $r->get('/api/client/servers/{server}/resources', [ClientApi\ClientApiController::class, 'getResources']);
+            $r->get('/api/client/servers/{server}/activity', [ClientApi\ClientApiController::class, 'getServerActivity']);
+
+            // Console, WebSocket & Power
             $r->get('/api/client/servers/{server}/websocket', [Server\ConsoleHandler::class, 'getWebsocketToken']);
             $r->post('/api/client/servers/{server}/power', [Server\PowerHandler::class, 'sendPower']);
             $r->post('/api/client/servers/{server}/command', [Server\CommandHandler::class, 'sendCommand']);
@@ -90,6 +160,7 @@ class Routes
             $r->get('/server/{server}/files', [Server\FileHandler::class, 'index']);
             $r->get('/api/client/servers/{server}/files/list', [Server\FileHandler::class, 'listDirectory']);
             $r->get('/server/{server}/files/edit', [Server\FileHandler::class, 'viewFile']);
+            $r->get('/api/client/servers/{server}/files/contents', [Server\FileHandler::class, 'getFileContents']);
             $r->post('/api/client/servers/{server}/files/write', [Server\FileHandler::class, 'writeFile']);
             $r->put('/api/client/servers/{server}/files/rename', [Server\FileHandler::class, 'rename']);
             $r->post('/api/client/servers/{server}/files/copy', [Server\FileHandler::class, 'copy']);
@@ -103,14 +174,17 @@ class Routes
 
             // Databases
             $r->get('/server/{server}/databases', [Server\DatabaseHandler::class, 'index']);
+            $r->get('/api/client/servers/{server}/databases', [Server\DatabaseHandler::class, 'index']);
             $r->post('/api/client/servers/{server}/databases', [Server\DatabaseHandler::class, 'create']);
             $r->post('/api/client/servers/{server}/databases/{id}/rotate-password', [Server\DatabaseHandler::class, 'rotatePassword']);
             $r->delete('/api/client/servers/{server}/databases/{id}', [Server\DatabaseHandler::class, 'delete']);
 
             // Schedules
             $r->get('/server/{server}/schedules', [Server\ScheduleHandler::class, 'index']);
+            $r->get('/api/client/servers/{server}/schedules', [Server\ScheduleHandler::class, 'index']);
             $r->post('/api/client/servers/{server}/schedules', [Server\ScheduleHandler::class, 'create']);
             $r->get('/server/{server}/schedules/{id}', [Server\ScheduleHandler::class, 'view']);
+            $r->get('/api/client/servers/{server}/schedules/{id}', [Server\ScheduleHandler::class, 'view']);
             $r->post('/api/client/servers/{server}/schedules/{id}', [Server\ScheduleHandler::class, 'update']);
             $r->post('/api/client/servers/{server}/schedules/{id}/execute', [Server\ScheduleHandler::class, 'executeNow']);
             $r->delete('/api/client/servers/{server}/schedules/{id}', [Server\ScheduleHandler::class, 'delete']);
@@ -119,12 +193,14 @@ class Routes
 
             // Users / Subusers
             $r->get('/server/{server}/users', [Server\SubuserHandler::class, 'index']);
+            $r->get('/api/client/servers/{server}/users', [Server\SubuserHandler::class, 'index']);
             $r->post('/api/client/servers/{server}/users', [Server\SubuserHandler::class, 'create']);
             $r->post('/api/client/servers/{server}/users/{id}', [Server\SubuserHandler::class, 'update']);
             $r->delete('/api/client/servers/{server}/users/{id}', [Server\SubuserHandler::class, 'delete']);
 
             // Backups
             $r->get('/server/{server}/backups', [Server\BackupHandler::class, 'index']);
+            $r->get('/api/client/servers/{server}/backups', [Server\BackupHandler::class, 'index']);
             $r->post('/api/client/servers/{server}/backups', [Server\BackupHandler::class, 'create']);
             $r->get('/api/client/servers/{server}/backups/{id}/download', [Server\BackupHandler::class, 'getDownloadUrl']);
             $r->post('/api/client/servers/{server}/backups/{id}/lock', [Server\BackupHandler::class, 'toggleLock']);
@@ -133,6 +209,7 @@ class Routes
 
             // Network Allocations
             $r->get('/server/{server}/network', [Server\NetworkHandler::class, 'index']);
+            $r->get('/api/client/servers/{server}/network/allocations', [Server\NetworkHandler::class, 'index']);
             $r->post('/api/client/servers/{server}/network/allocations', [Server\NetworkHandler::class, 'assign']);
             $r->post('/api/client/servers/{server}/network/allocations/{id}/primary', [Server\NetworkHandler::class, 'setPrimary']);
             $r->post('/api/client/servers/{server}/network/allocations/{id}/notes', [Server\NetworkHandler::class, 'setNotes']);
@@ -140,10 +217,12 @@ class Routes
 
             // Startup
             $r->get('/server/{server}/startup', [Server\StartupHandler::class, 'index']);
+            $r->get('/api/client/servers/{server}/startup', [Server\StartupHandler::class, 'index']);
             $r->put('/api/client/servers/{server}/startup/variable', [Server\StartupHandler::class, 'updateVariable']);
 
             // Settings
             $r->get('/server/{server}/settings', [Server\SettingsHandler::class, 'index']);
+            $r->get('/api/client/servers/{server}/settings', [Server\SettingsHandler::class, 'index']);
             $r->post('/api/client/servers/{server}/settings/rename', [Server\SettingsHandler::class, 'rename']);
             $r->post('/api/client/servers/{server}/settings/reinstall', [Server\SettingsHandler::class, 'reinstall']);
             $r->put('/api/client/servers/{server}/settings/docker-image', [Server\SettingsHandler::class, 'dockerImage']);

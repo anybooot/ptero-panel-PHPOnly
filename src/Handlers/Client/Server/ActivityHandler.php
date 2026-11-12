@@ -21,7 +21,10 @@ class ActivityHandler
         $user = $request->getAttribute('user');
 
         if (!Gate::allows($user, $server, 'activity.read')) {
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have permission to view server activity.</p>', 403);
+            if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
+                return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to view server activity.']]], 403);
+            }
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to view server activity.', 'Access Denied'), 403);
         }
 
         $logs = Database::query(
@@ -29,8 +32,8 @@ class ActivityHandler
                     u.`username` as actor_username, u.`email` as actor_email
              FROM `activity_log_subjects` als
              JOIN `activity_logs` al ON al.`id` = als.`activity_log_id`
-             LEFT JOIN `users` u ON u.`id` = al.`actor_id` AND al.`actor_type` = 'user'
-             WHERE als.`subject_id` = :server_id AND als.`subject_type` = 'server'
+             LEFT JOIN `users` u ON u.`id` = al.`actor_id` AND (al.`actor_type` IN ('user', 'App\\\\Models\\\\User') OR al.`actor_type` IS NULL)
+             WHERE als.`subject_id` = :server_id AND als.`subject_type` IN ('server', 'App\\\\Models\\\\Server')
              ORDER BY al.`timestamp` DESC LIMIT 50",
             ['server_id' => $server['id']]
         );

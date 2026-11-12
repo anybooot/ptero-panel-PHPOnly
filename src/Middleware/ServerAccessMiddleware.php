@@ -33,7 +33,7 @@ class ServerAccessMiddleware
             if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
                 return Response::json(['errors' => [['code' => 'NotFoundHttpException', 'status' => '404', 'detail' => 'Server not found.']]], 404);
             }
-            return Response::html('<h1>404 Server Not Found</h1><p>The requested server does not exist.</p>', 404);
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(404, 'The requested server does not exist or has been deleted.', 'Server Not Found'), 404);
         }
 
         $user = $request->getAttribute('user');
@@ -41,7 +41,7 @@ class ServerAccessMiddleware
             if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
                 return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to access this server.']]], 403);
             }
-            return Response::html('<h1>403 Forbidden</h1><p>You do not have access to this server.</p>', 403);
+            return Response::html(\Pterodactyl\Core\ErrorRenderer::render(403, 'You do not have permission to view or manage this server.', 'Access Denied'), 403);
         }
 
         // Attach Node

@@ -37,15 +37,13 @@ class PowerHandler
         try {
             WingsClient::sendPowerAction($server['node'], $server['uuid'], $action);
 
-            // Log activity
-            Database::insert('activity_logs', [
-                'ip' => $request->getClientIp(),
-                'event' => "server:power.{$action}",
-                'properties' => json_encode(['action' => $action]),
-                'timestamp' => date('Y-m-d H:i:s'),
-                'actor_id' => $user['id'],
-                'actor_type' => 'user',
-            ]);
+            \Pterodactyl\Core\ActivityLogger::log(
+                "server:power.{$action}",
+                $user,
+                ['action' => $action],
+                $request,
+                $server
+            );
 
             return Response::noContent();
         } catch (\Throwable $e) {
