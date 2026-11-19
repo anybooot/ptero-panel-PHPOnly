@@ -15,6 +15,21 @@
     </div>
 </div>
 
+<!-- Bulk Actions Toolbar (visible when files are selected) -->
+<div id="files-bulk-actions" style="display: none; align-items: center; justify-content: space-between; background: #161820; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 18px; margin-bottom: 14px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-weight: 600; color: #eceff4;" id="selected-files-count">0 items selected</span>
+    </div>
+    <div style="display: flex; gap: 8px;">
+        <button id="btn-bulk-archive" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;">
+            <span>📦</span> Archive (.tar.gz)
+        </button>
+        <button id="btn-bulk-delete" class="btn btn-danger btn-sm" style="display: flex; align-items: center; gap: 6px;">
+            <span>🗑</span> Delete Selected
+        </button>
+    </div>
+</div>
+
 <!-- Upload Progress Bar (hidden by default) -->
 <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.05); margin-bottom: 12px; border-radius: 2px; overflow: hidden;">
     <div id="upload-progress-bar" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.2s ease;"></div>
@@ -26,11 +41,11 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-files"></th>
+                        <th style="width: 40px; text-align: center;"><input type="checkbox" id="select-all-files" style="cursor: pointer;"></th>
                         <th>Name</th>
                         <th>Size</th>
                         <th>Modified</th>
-                        <th style="text-align: right;">Actions</th>
+                        <th style="width: 70px; text-align: right;"></th>
                     </tr>
                 </thead>
                 <tbody id="files-table-body">
@@ -60,6 +75,92 @@
                 <button type="submit" class="btn btn-primary">Create</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Rename Modal -->
+<div class="modal-backdrop" id="modal-rename-file">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3 class="modal-title">Rename File / Folder</h3>
+            <button class="modal-close" data-modal-close>&times;</button>
+        </div>
+        <form id="rename-file-form">
+            <input type="hidden" id="rename-old-name">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label" for="rename-new-name">New Name</label>
+                    <input type="text" id="rename-new-name" class="form-control" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+                <button type="submit" class="btn btn-primary">Rename</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Chmod Permissions Modal -->
+<div class="modal-backdrop" id="modal-chmod-file">
+    <div class="modal-dialog">
+        <div class="modal-header">
+            <h3 class="modal-title">File Permissions (Chmod)</h3>
+            <button class="modal-close" data-modal-close>&times;</button>
+        </div>
+        <form id="chmod-file-form">
+            <input type="hidden" id="chmod-target-name">
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px;">
+                    Editing permissions for: <strong id="chmod-target-label" style="color: #eceff4; font-family: var(--font-mono);"></strong>
+                </p>
+                <div class="form-group">
+                    <label class="form-label" for="chmod-mode-input">Octal Permission Mode</label>
+                    <input type="text" id="chmod-mode-input" class="form-control" maxlength="4" style="font-family: var(--font-mono); font-size: 16px; font-weight: 700; width: 140px;" value="0644">
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; background: rgba(0,0,0,0.25); padding: 14px; border-radius: 8px;">
+                    <div>
+                        <div style="font-weight: 600; color: #eceff4; font-size: 12px; margin-bottom: 6px;">Owner (User)</div>
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px;"><input type="checkbox" id="perm-ur"> Read</label>
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px;"><input type="checkbox" id="perm-uw"> Write</label>
+                        <label style="display: block; font-size: 12px;"><input type="checkbox" id="perm-ux"> Execute</label>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: #eceff4; font-size: 12px; margin-bottom: 6px;">Group</div>
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px;"><input type="checkbox" id="perm-gr"> Read</label>
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px;"><input type="checkbox" id="perm-gw"> Write</label>
+                        <label style="display: block; font-size: 12px;"><input type="checkbox" id="perm-gx"> Execute</label>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: #eceff4; font-size: 12px; margin-bottom: 6px;">Others</div>
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px;"><input type="checkbox" id="perm-or"> Read</label>
+                        <label style="display: block; font-size: 12px; margin-bottom: 4px;"><input type="checkbox" id="perm-ow"> Write</label>
+                        <label style="display: block; font-size: 12px;"><input type="checkbox" id="perm-ox"> Execute</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Permissions</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Large Upload Overlay Modal -->
+<div class="modal-backdrop" id="modal-upload-overlay" style="align-items: center; justify-content: center;">
+    <div class="modal-dialog" style="max-width: 520px; text-align: center; padding: 32px 24px;">
+        <div style="font-size: 42px; margin-bottom: 12px; animation: bounce 1.5s infinite;">📤</div>
+        <h3 style="color: #eceff4; font-size: 20px; font-weight: 700; margin-bottom: 6px;">Uploading File(s)</h3>
+        <p id="upload-modal-filename" style="font-family: var(--font-mono); font-size: 14px; color: #60a5fa; margin-bottom: 4px; word-break: break-all;">filename.zip</p>
+        <p id="upload-modal-size" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">0 MB / 0 MB</p>
+
+        <!-- Big Progress Bar -->
+        <div style="width: 100%; height: 18px; background: rgba(255,255,255,0.06); border-radius: 9px; overflow: hidden; position: relative; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.08);">
+            <div id="upload-modal-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); transition: width 0.15s ease;"></div>
+        </div>
+        <div id="upload-modal-percent" style="font-weight: 700; font-size: 15px; color: #eceff4;">0%</div>
+        <div id="upload-modal-status" style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">Uploading directly to Wings node...</div>
     </div>
 </div>
 

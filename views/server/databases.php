@@ -2,13 +2,28 @@
 
 <div class="page-header" style="margin-bottom: 16px;">
     <div>
-        <h1 class="page-title">Databases</h1>
-        <p class="page-subtitle">Manage MySQL / MariaDB databases provisioned for this server</p>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <h1 class="page-title">Databases</h1>
+            <span class="badge <?= empty($canCreate) ? 'badge-danger' : 'badge-secondary' ?>" style="font-family: var(--font-mono); font-size: 12px;">
+                <?= (int)$databaseCount ?> / <?= (int)$databaseLimit > 0 ? (int)$databaseLimit : 'Unlimited' ?>
+            </span>
+        </div>
+        <p class="page-subtitle">Manage MySQL / MariaDB databases and connection credentials provisioned for this server</p>
     </div>
     <div>
-        <button class="btn btn-primary btn-sm" onclick="App.openModal('modal-create-database')">Create Database</button>
+        <?php if (!empty($canCreate)): ?>
+            <button class="btn btn-primary btn-sm" onclick="App.openModal('modal-create-database')">Create Database</button>
+        <?php else: ?>
+            <button class="btn btn-secondary btn-sm" disabled title="Database limit reached">Limit Reached</button>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if (empty($canCreate)): ?>
+    <div class="alert alert-warning" style="margin-bottom: 16px; border-left: 4px solid #f59e0b;">
+        <strong>Limită atinsă:</strong> Ai atins numărul maxim de baze de date permise pentru acest server (<?= (int)$databaseCount ?> / <?= (int)$databaseLimit ?>). Pentru a crea una nouă, șterge o bază de date existentă sau mărește limita din panoul de administrare.
+    </div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-body" style="padding: 0;">
@@ -19,25 +34,64 @@
                         <th>Database</th>
                         <th>Username</th>
                         <th>Endpoint</th>
+                        <th>Connections From</th>
                         <th>Password</th>
                         <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($databases)): ?>
-                        <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">No databases have been created for this server.</td></tr>
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 32px 20px;">No databases have been created for this server.</td></tr>
                     <?php else: ?>
                         <?php foreach ($databases as $d): ?>
-                            <tr>
-                                <td style="font-weight: 600; color: #fff; font-family: var(--font-mono);"><?= \Pterodactyl\Core\View::e($d['database']) ?></td>
-                                <td style="font-family: var(--font-mono);"><?= \Pterodactyl\Core\View::e($d['username']) ?></td>
-                                <td style="font-family: var(--font-mono); color: var(--text-secondary);"><?= \Pterodactyl\Core\View::e($d['host'] . ':' . $d['port']) ?></td>
+                            <?php
+                                $dbHost = $d['host'] ?? '127.0.0.1';
+                                $dbPort = $d['port'] ?? 3306;
+                                $dbUser = $d['username'] ?? '';
+                                $dbPass = $d['password_plain'] ?? '';
+                                $dbName = $d['database'] ?? '';
+                                $dbRemote = $d['remote'] ?? '%';
+                                $jdbcUrl = "jdbc:mysql://{$dbHost}:{$dbPort}/{$dbName}";
+                            ?>
+                            <tr class="database-row">
                                 <td>
-                                    <span style="font-family: var(--font-mono); background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 3px;"><?= \Pterodactyl\Core\View::e($d['password_plain']) ?></span>
+                                    <div style="font-weight: 700; color: #eceff4; font-family: var(--font-mono); font-size: 13.5px;"><?= \Pterodactyl\Core\View::e($dbName) ?></div>
+                                    <div style="font-size: 11.5px; color: var(--text-muted);"><?= \Pterodactyl\Core\View::e($d['host_name'] ?? 'MySQL Host') ?></div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-family: var(--font-mono); color: #cbd5e1;"><?= \Pterodactyl\Core\View::e($dbUser) ?></span>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbUser) ?>', 'Username copiat!')" title="Copy Username">📋</button>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-family: var(--font-mono); color: #60a5fa;"><?= \Pterodactyl\Core\View::e($dbHost . ':' . $dbPort) ?></span>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbHost . ':' . $dbPort) ?>', 'Endpoint copiat!')" title="Copy Endpoint">📋</button>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge badge-secondary" style="font-family: var(--font-mono); font-size: 11px;"><?= \Pterodactyl\Core\View::e($dbRemote) ?></span>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span id="pwd-display-<?= $d['id'] ?>" data-hidden="true" data-pwd="<?= \Pterodactyl\Core\View::e($dbPass) ?>" style="font-family: var(--font-mono); background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 4px; color: #eceff4; min-width: 90px; text-align: center;">••••••••</span>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 11px;" onclick="togglePasswordView('<?= $d['id'] ?>')" title="Toggle visibility">👁</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbPass) ?>', 'Parolă copiată!')" title="Copy Password">📋</button>
+                                    </div>
                                 </td>
                                 <td style="text-align: right; white-space: nowrap;">
-                                    <button class="btn btn-secondary btn-sm" onclick="rotateDbPassword('<?= $d['id'] ?>')">Rotate Password</button>
-                                    <button class="btn btn-danger btn-sm" onclick="deleteDb('<?= $d['id'] ?>')">Delete</button>
+                                    <button class="btn btn-secondary btn-sm" onclick='openDbDetailsModal(<?= json_encode([
+                                        'database' => $dbName,
+                                        'username' => $dbUser,
+                                        'password' => $dbPass,
+                                        'host' => $dbHost,
+                                        'port' => $dbPort,
+                                        'remote' => $dbRemote,
+                                        'jdbc' => $jdbcUrl
+                                    ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>)' title="Connection Details">Details</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="rotateDbPassword('<?= $d['id'] ?>')" title="Rotate Password">Rotate</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteDb('<?= $d['id'] ?>')" title="Delete Database">Delete</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -74,7 +128,105 @@
     </div>
 </div>
 
+<!-- Database Connection Details Modal -->
+<div class="modal-backdrop" id="modal-db-details">
+    <div class="modal-dialog" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Database Connection Details</h3>
+            <button class="modal-close" data-modal-close>&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                <div>
+                    <label class="form-label" style="font-size: 11px;">Endpoint (Host)</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="text" id="modal-dt-host" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyInput('modal-dt-host')">📋</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label" style="font-size: 11px;">Port</label>
+                    <input type="text" id="modal-dt-port" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                <div>
+                    <label class="form-label" style="font-size: 11px;">Database Name</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="text" id="modal-dt-name" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyInput('modal-dt-name')">📋</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label" style="font-size: 11px;">Username</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="text" id="modal-dt-user" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyInput('modal-dt-user')">📋</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" style="font-size: 11px;">Password</label>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="modal-dt-pass" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyInput('modal-dt-pass')">📋</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" style="font-size: 11px;">JDBC Connection String</label>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="modal-dt-jdbc" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyInput('modal-dt-jdbc')">📋</button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-modal-close>Close</button>
+        </div>
+    </div>
+</div>
+
 <script>
+function copyToClipboard(text, msg = 'Copied to clipboard!') {
+    navigator.clipboard.writeText(text).then(() => {
+        App.toast(msg, 'success');
+    }).catch(() => {
+        App.toast('Failed to copy', 'danger');
+    });
+}
+
+function copyInput(inputId) {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    copyToClipboard(el.value);
+}
+
+function togglePasswordView(id) {
+    const el = document.getElementById(`pwd-display-${id}`);
+    if (!el) return;
+    const isHidden = el.dataset.hidden === 'true';
+    if (isHidden) {
+        el.textContent = el.dataset.pwd;
+        el.dataset.hidden = 'false';
+    } else {
+        el.textContent = '••••••••';
+        el.dataset.hidden = 'true';
+    }
+}
+
+function openDbDetailsModal(data) {
+    document.getElementById('modal-dt-host').value = data.host;
+    document.getElementById('modal-dt-port').value = data.port;
+    document.getElementById('modal-dt-name').value = data.database;
+    document.getElementById('modal-dt-user').value = data.username;
+    document.getElementById('modal-dt-pass').value = data.password;
+    document.getElementById('modal-dt-jdbc').value = data.jdbc;
+    App.openModal('modal-db-details');
+}
+
 document.getElementById('create-db-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const database = document.getElementById('db-name').value;
@@ -87,7 +239,9 @@ document.getElementById('create-db-form').addEventListener('submit', async (e) =
         });
         App.toast('Database created successfully.', 'success');
         setTimeout(() => window.location.reload(), 600);
-    } catch (e) {}
+    } catch (e) {
+        App.toast('Error creating database: ' + e.message, 'danger');
+    }
 });
 
 async function rotateDbPassword(id) {
@@ -98,7 +252,9 @@ async function rotateDbPassword(id) {
         });
         App.toast('Password rotated successfully.', 'success');
         setTimeout(() => window.location.reload(), 600);
-    } catch (e) {}
+    } catch (e) {
+        App.toast('Failed to rotate password: ' + e.message, 'danger');
+    }
 }
 
 async function deleteDb(id) {
@@ -109,6 +265,8 @@ async function deleteDb(id) {
         });
         App.toast('Database deleted.', 'success');
         setTimeout(() => window.location.reload(), 600);
-    } catch (e) {}
+    } catch (e) {
+        App.toast('Failed to delete database: ' + e.message, 'danger');
+    }
 }
 </script>

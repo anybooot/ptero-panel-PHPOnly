@@ -35,7 +35,7 @@ class ErrorRenderer
         $title = $title ?? ($titles[$code] ?? "Error {$code}");
         $message = $message ?? ($defaultMessages[$code] ?? 'An unexpected error occurred.');
         $debug = (bool)Config::get('APP_DEBUG', false);
-        $appName = (string)Config::get('APP_NAME', 'Pterodactyl');
+        $appName = View::getAppName();
 
         $safeTitle = htmlspecialchars($title, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
         $safeMessage = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');

@@ -23,14 +23,22 @@
                     <input type="text" id="srv-name" name="name" class="form-control" required placeholder="e.g. Survival SMP">
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="srv-owner">Server Owner</label>
-                    <select id="srv-owner" name="owner_id" class="form-control" required>
-                        <option value="">Select User</option>
+                <div class="form-group" style="position: relative;">
+                    <label class="form-label" for="user-search-input">Server Owner</label>
+                    <input type="hidden" id="srv-owner" name="owner_id" required value="">
+                    <div style="position: relative;">
+                        <input type="text" id="user-search-input" class="form-control" placeholder="Search user by username or email..." autocomplete="off">
+                        <span id="user-clear-btn" style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 16px;">&times;</span>
+                    </div>
+                    <div id="user-dropdown-list" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #161820; border: 1px solid var(--border-color); border-radius: 8px; max-height: 220px; overflow-y: auto; z-index: 100; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.6);">
                         <?php foreach ($users as $u): ?>
-                            <option value="<?= $u['id'] ?>"><?= \Pterodactyl\Core\View::e($u['username'] . ' (' . $u['email'] . ')') ?></option>
+                            <div class="search-user-item" data-id="<?= $u['id'] ?>" data-username="<?= \Pterodactyl\Core\View::e($u['username']) ?>" data-email="<?= \Pterodactyl\Core\View::e($u['email']) ?>" style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600; color: #eceff4;"><?= \Pterodactyl\Core\View::e($u['username']) ?></span>
+                                <span style="font-size: 12px; color: var(--text-muted);"><?= \Pterodactyl\Core\View::e($u['email']) ?></span>
+                            </div>
                         <?php endforeach; ?>
-                    </select>
+                        <div id="user-empty-msg" style="display: none; padding: 14px; text-align: center; color: var(--text-muted); font-size: 13px;">No matching users found</div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -43,13 +51,22 @@
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label" for="srv-alloc">Primary Allocation</label>
-                    <select id="srv-alloc" name="allocation_id" class="form-control">
-                        <option value="0">Auto-assign first available</option>
-                    </select>
+                <div class="form-group" style="position: relative;">
+                    <label class="form-label" for="alloc-search-input">Primary Allocation</label>
+                    <input type="hidden" id="srv-alloc" name="allocation_id" value="0">
+                    <div style="position: relative;">
+                        <input type="text" id="alloc-search-input" class="form-control" placeholder="Auto-assign first available (type IP or port to filter)..." autocomplete="off">
+                        <span id="alloc-clear-btn" style="display: none; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); font-size: 16px;">&times;</span>
+                    </div>
+                    <div id="alloc-dropdown-list" style="display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #161820; border: 1px solid var(--border-color); border-radius: 8px; max-height: 220px; overflow-y: auto; z-index: 100; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.6);">
+                        <div class="search-alloc-item" data-id="0" data-label="Auto-assign first available" style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04); color: #60a5fa; font-weight: 500;">
+                            Auto-assign first available
+                        </div>
+                        <div id="alloc-items-container"></div>
+                        <div id="alloc-empty-msg" style="display: none; padding: 14px; text-align: center; color: var(--text-muted); font-size: 13px;">No matching allocations found</div>
+                    </div>
                     <small style="color: var(--text-muted); font-size: 12px; margin-top: 4px; display: block;">
-                        Select a specific IP and port or leave on auto-assign.
+                        Search and select a specific IP or port, or leave on auto-assign.
                     </small>
                 </div>
 
@@ -134,25 +151,196 @@
 </form>
 
 <script>
-async function loadNodeAllocations(nodeId) {
-    const allocSelect = document.getElementById('srv-alloc');
-    allocSelect.innerHTML = '<option value="0">Auto-assign first available</option>';
-    if (!nodeId) return;
+// User Search & Select
+const userInput = document.getElementById('user-search-input');
+const userHidden = document.getElementById('srv-owner');
+const userDropdown = document.getElementById('user-dropdown-list');
+const userClearBtn = document.getElementById('user-clear-btn');
+const userEmptyMsg = document.getElementById('user-empty-msg');
+const userItems = Array.from(document.querySelectorAll('.search-user-item'));
 
+function filterUsers(query) {
+    query = (query || '').toLowerCase().trim();
+    let matches = 0;
+    userItems.forEach(item => {
+        const u = (item.dataset.username || '').toLowerCase();
+        const e = (item.dataset.email || '').toLowerCase();
+        if (!query || u.includes(query) || e.includes(query)) {
+            item.style.display = 'flex';
+            matches++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    userEmptyMsg.style.display = matches === 0 ? 'block' : 'none';
+}
+
+userInput.addEventListener('focus', () => {
+    userDropdown.style.display = 'block';
+    filterUsers(userInput.value);
+});
+
+userInput.addEventListener('input', () => {
+    userDropdown.style.display = 'block';
+    userClearBtn.style.display = userInput.value ? 'block' : 'none';
+    filterUsers(userInput.value);
+});
+
+userClearBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    userInput.value = '';
+    userHidden.value = '';
+    userClearBtn.style.display = 'none';
+    filterUsers('');
+    userInput.focus();
+});
+
+userItems.forEach(item => {
+    item.addEventListener('click', () => {
+        userHidden.value = item.dataset.id;
+        userInput.value = `${item.dataset.username} (${item.dataset.email})`;
+        userClearBtn.style.display = 'block';
+        userDropdown.style.display = 'none';
+    });
+    item.addEventListener('mouseenter', () => {
+        item.style.backgroundColor = 'rgba(255,255,255,0.06)';
+    });
+    item.addEventListener('mouseleave', () => {
+        item.style.backgroundColor = 'transparent';
+    });
+});
+
+// Allocation Search & Select
+let loadedAllocations = [];
+const allocInput = document.getElementById('alloc-search-input');
+const allocHidden = document.getElementById('srv-alloc');
+const allocDropdown = document.getElementById('alloc-dropdown-list');
+const allocClearBtn = document.getElementById('alloc-clear-btn');
+const allocItemsContainer = document.getElementById('alloc-items-container');
+const allocEmptyMsg = document.getElementById('alloc-empty-msg');
+
+async function loadNodeAllocations(nodeId) {
+    allocHidden.value = '0';
+    allocInput.value = '';
+    allocClearBtn.style.display = 'none';
+    allocItemsContainer.innerHTML = '';
+    loadedAllocations = [];
+
+    if (!nodeId) {
+        allocInput.placeholder = 'Select a node first...';
+        return;
+    }
+
+    allocInput.placeholder = 'Loading allocations...';
     try {
         const res = await fetch(`/admin/nodes/view/${nodeId}/allocations-json`);
-        if (!res.ok) return;
-        const allocations = await res.json();
-        allocations.forEach(a => {
-            const opt = document.createElement('option');
-            opt.value = a.id;
-            opt.textContent = `${a.ip_alias ? a.ip_alias + ' (' + a.ip + ')' : a.ip}:${a.port}`;
-            allocSelect.appendChild(opt);
-        });
+        if (!res.ok) throw new Error('Failed to fetch');
+        loadedAllocations = await res.json();
+        allocInput.placeholder = 'Auto-assign first available (type IP or port to filter)...';
+        renderAllocItems(loadedAllocations);
     } catch (e) {
         console.error('Error fetching allocations:', e);
+        allocInput.placeholder = 'Failed to load allocations';
     }
 }
+
+function renderAllocItems(list) {
+    allocItemsContainer.innerHTML = '';
+    list.forEach(a => {
+        const fullAddr = `${a.ip_alias ? a.ip_alias : a.ip}:${a.port}`;
+        const rawAddr = `${a.ip}:${a.port}`;
+        const div = document.createElement('div');
+        div.className = 'search-alloc-item';
+        div.dataset.id = a.id;
+        div.dataset.ip = a.ip;
+        div.dataset.alias = a.ip_alias || '';
+        div.dataset.port = a.port;
+        div.dataset.full = fullAddr;
+        div.style.cssText = 'padding: 10px 14px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; justify-content: space-between; align-items: center;';
+        div.innerHTML = `
+            <span style="font-family: var(--font-mono); font-weight: 600; color: #eceff4;">${fullAddr}</span>
+            <span style="font-size: 11px; background: rgba(59,130,246,0.15); color: #60a5fa; padding: 2px 6px; border-radius: 4px;">Port ${a.port}</span>
+        `;
+        div.addEventListener('click', () => {
+            allocHidden.value = a.id;
+            allocInput.value = fullAddr;
+            allocClearBtn.style.display = 'block';
+            allocDropdown.style.display = 'none';
+        });
+        div.addEventListener('mouseenter', () => div.style.backgroundColor = 'rgba(255,255,255,0.06)');
+        div.addEventListener('mouseleave', () => div.style.backgroundColor = 'transparent');
+        allocItemsContainer.appendChild(div);
+    });
+}
+
+function filterAllocations(query) {
+    query = (query || '').toLowerCase().trim();
+    let matches = 0;
+    const items = allocItemsContainer.querySelectorAll('.search-alloc-item');
+    items.forEach(item => {
+        const ip = (item.dataset.ip || '').toLowerCase();
+        const alias = (item.dataset.alias || '').toLowerCase();
+        const port = String(item.dataset.port || '').toLowerCase();
+        const full = (item.dataset.full || '').toLowerCase();
+
+        if (!query || ip.includes(query) || alias.includes(query) || port.includes(query) || full.includes(query)) {
+            item.style.display = 'flex';
+            matches++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    const autoAssign = allocDropdown.querySelector('.search-alloc-item[data-id="0"]');
+    if (autoAssign) {
+        autoAssign.style.display = (!query || 'auto'.includes(query)) ? 'block' : 'none';
+        if (autoAssign.style.display === 'block') matches++;
+    }
+
+    allocEmptyMsg.style.display = matches === 0 ? 'block' : 'none';
+}
+
+const autoItem = allocDropdown.querySelector('.search-alloc-item[data-id="0"]');
+if (autoItem) {
+    autoItem.addEventListener('click', () => {
+        allocHidden.value = '0';
+        allocInput.value = 'Auto-assign first available';
+        allocClearBtn.style.display = 'block';
+        allocDropdown.style.display = 'none';
+    });
+    autoItem.addEventListener('mouseenter', () => autoItem.style.backgroundColor = 'rgba(255,255,255,0.06)');
+    autoItem.addEventListener('mouseleave', () => autoItem.style.backgroundColor = 'transparent');
+}
+
+allocInput.addEventListener('focus', () => {
+    allocDropdown.style.display = 'block';
+    filterAllocations(allocInput.value);
+});
+
+allocInput.addEventListener('input', () => {
+    allocDropdown.style.display = 'block';
+    allocClearBtn.style.display = allocInput.value ? 'block' : 'none';
+    filterAllocations(allocInput.value);
+});
+
+allocClearBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    allocInput.value = '';
+    allocHidden.value = '0';
+    allocClearBtn.style.display = 'none';
+    filterAllocations('');
+    allocInput.focus();
+});
+
+// Close dropdowns on outside click
+document.addEventListener('click', (e) => {
+    if (!userInput.contains(e.target) && !userDropdown.contains(e.target)) {
+        userDropdown.style.display = 'none';
+    }
+    if (!allocInput.contains(e.target) && !allocDropdown.contains(e.target)) {
+        allocDropdown.style.display = 'none';
+    }
+});
 
 function filterEggs(nestId) {
     const eggSelect = document.getElementById('srv-egg');

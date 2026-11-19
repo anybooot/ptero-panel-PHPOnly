@@ -26,50 +26,58 @@ class View
         self::$shared[$key] = $value;
     }
 
+    public static function getAppName(): string
+    {
+        try {
+            $setting = Database::queryOne("SELECT `value` FROM `settings` WHERE `key` = 'settings::app:name' LIMIT 1");
+            if (!empty($setting['value'])) {
+                return (string)$setting['value'];
+            }
+        } catch (\Throwable) {
+        }
+        return (string)Config::get('APP_NAME', 'Pterodactyl');
+    }
+
     public static function render(string $template, array $data = []): string
     {
-        if (!isset($data['appName']) && !isset(self::$shared['appName'])) {
-            try {
-                $setting = Database::queryOne("SELECT `value` FROM `settings` WHERE `key` = 'settings::app:name' LIMIT 1");
-                $data['appName'] = !empty($setting['value']) ? $setting['value'] : Config::get('APP_NAME', 'Pterodactyl');
-            } catch (\Throwable) {
-                $data['appName'] = Config::get('APP_NAME', 'Pterodactyl');
-            }
+        if (!isset($data['appName'])) {
+            $data['appName'] = self::getAppName();
         }
 
         $view = new self();
         return $view->renderTemplate($template, array_merge(self::$shared, $data));
     }
 
-    private function renderTemplate(string $template, array $data): string
+    private function renderTemplate(string $__template, array $__data): string
     {
-        $file = self::$baseDir . DIRECTORY_SEPARATOR . str_replace('.', DIRECTORY_SEPARATOR, $template) . '.php';
-        if (!file_exists($file)) {
-            throw new \RuntimeException("View template not found: {$file}");
+        $__viewFile = self::$baseDir . DIRECTORY_SEPARATOR . str_replace('.', DIRECTORY_SEPARATOR, $__template) . '.php';
+        if (!file_exists($__viewFile)) {
+            throw new \RuntimeException("View template not found: {$__viewFile}");
         }
 
-        extract($data, EXTR_SKIP);
+        extract($__data, EXTR_OVERWRITE);
 
         ob_start();
-        include $file;
-        $content = ob_get_clean() ?: '';
+        include $__viewFile;
+        $__content = ob_get_clean() ?: '';
 
         while ($this->layout !== null) {
-            $currentLayout = $this->layout;
+            $__currentLayout = $this->layout;
             $this->layout = null;
 
-            $layoutFile = self::$baseDir . DIRECTORY_SEPARATOR . str_replace('.', DIRECTORY_SEPARATOR, $currentLayout) . '.php';
-            if (!file_exists($layoutFile)) {
-                throw new \RuntimeException("Layout file not found: {$layoutFile}");
+            $__layoutFile = self::$baseDir . DIRECTORY_SEPARATOR . str_replace('.', DIRECTORY_SEPARATOR, $__currentLayout) . '.php';
+            if (!file_exists($__layoutFile)) {
+                throw new \RuntimeException("Layout file not found: {$__layoutFile}");
             }
 
-            $this->sections['content'] = $content;
+            $this->sections['content'] = $__content;
+            $content = $__content;
             ob_start();
-            include $layoutFile;
-            $content = ob_get_clean() ?: '';
+            include $__layoutFile;
+            $__content = ob_get_clean() ?: '';
         }
 
-        return $content;
+        return $__content;
     }
 
     public function extend(string $layout): void

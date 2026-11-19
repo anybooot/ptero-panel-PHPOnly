@@ -10,19 +10,35 @@
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
     <!-- SFTP Details Card -->
     <div class="card">
-        <div class="card-header">SFTP Details</div>
+        <div class="card-header" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>SFTP Details</span>
+            <a href="sftp://<?= rawurlencode($sftpUsername) ?>@<?= \Pterodactyl\Core\View::e($node['fqdn']) ?>:<?= (int)$sftpPort ?>" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                <span>🚀</span> Open SFTP
+            </a>
+        </div>
         <div class="card-body">
             <div class="form-group">
                 <label class="form-label">Server Address</label>
-                <input type="text" class="form-control" style="font-family: var(--font-mono);" value="sftp://<?= \Pterodactyl\Core\View::e($node['fqdn'] . ':' . $sftpPort) ?>" readonly>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="sftp-address-val" class="form-control" style="font-family: var(--font-mono);" value="sftp://<?= \Pterodactyl\Core\View::e($node['fqdn'] . ':' . $sftpPort) ?>" readonly>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('sftp-address-val').value); App.toast('SFTP address copied!', 'success');" title="Copy Address">📋</button>
+                </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Username</label>
-                <input type="text" class="form-control" style="font-family: var(--font-mono);" value="<?= \Pterodactyl\Core\View::e($sftpUsername) ?>" readonly>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="sftp-user-val" class="form-control" style="font-family: var(--font-mono);" value="<?= \Pterodactyl\Core\View::e($sftpUsername) ?>" readonly>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('sftp-user-val').value); App.toast('Username copied!', 'success');" title="Copy Username">📋</button>
+                </div>
             </div>
             <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 0;">
                 Connect using FileZilla, WinSCP, or your preferred SFTP client using your panel account password or registered SSH key.
             </p>
+        </div>
+        <div class="card-footer" style="background: rgba(0,0,0,0.15);">
+            <a href="sftp://<?= rawurlencode($sftpUsername) ?>@<?= \Pterodactyl\Core\View::e($node['fqdn']) ?>:<?= (int)$sftpPort ?>" class="btn btn-primary btn-block" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
+                <span>📂</span> Launch SFTP Client
+            </a>
         </div>
     </div>
 

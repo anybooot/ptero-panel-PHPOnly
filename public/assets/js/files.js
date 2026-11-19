@@ -1,5 +1,5 @@
 /**
- * Pterodactyl Panel - File Manager JavaScript Client
+ * Pterodactyl Panel - Modern File Manager Client
  */
 
 class FileManager {
@@ -11,12 +11,22 @@ class FileManager {
         this.uploadInput = document.getElementById('file-upload-input');
         this.progressBar = document.getElementById('upload-progress-bar');
         this.newFolderForm = document.getElementById('new-folder-form');
+        this.selectAllCheckbox = document.getElementById('select-all-files');
+        this.bulkToolbar = document.getElementById('files-bulk-actions');
+        this.selectedCountEl = document.getElementById('selected-files-count');
+        this.btnBulkArchive = document.getElementById('btn-bulk-archive');
+        this.btnBulkDelete = document.getElementById('btn-bulk-delete');
+
+        // Modals
+        this.renameForm = document.getElementById('rename-file-form');
+        this.chmodForm = document.getElementById('chmod-file-form');
 
         this.init();
     }
 
     init() {
         this.bindEvents();
+        this.bindChmodHelpers();
         this.loadDirectory(this.currentDirectory);
     }
 
@@ -31,14 +41,106 @@ class FileManager {
                 this.createDirectory();
             });
         }
+
+        if (this.selectAllCheckbox) {
+            this.selectAllCheckbox.addEventListener('change', () => {
+                const checked = this.selectAllCheckbox.checked;
+                const boxes = document.querySelectorAll('.file-select-box');
+                boxes.forEach(b => b.checked = checked);
+                this.updateBulkToolbar();
+            });
+        }
+
+        if (this.btnBulkArchive) {
+            this.btnBulkArchive.addEventListener('click', () => this.archiveSelected());
+        }
+
+        if (this.btnBulkDelete) {
+            this.btnBulkDelete.addEventListener('click', () => this.deleteSelected());
+        }
+
+        if (this.renameForm) {
+            this.renameForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.executeRename();
+            });
+        }
+
+        if (this.chmodForm) {
+            this.chmodForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.executeChmod();
+            });
+        }
+
+        // Close file action dropdowns on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.file-actions-dropdown')) {
+                document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
+            }
+        });
+    }
+
+    bindChmodHelpers() {
+        const modeInput = document.getElementById('chmod-mode-input');
+        if (!modeInput) return;
+
+        const checks = {
+            ur: document.getElementById('perm-ur'),
+            uw: document.getElementById('perm-uw'),
+            ux: document.getElementById('perm-ux'),
+            gr: document.getElementById('perm-gr'),
+            gw: document.getElementById('perm-gw'),
+            gx: document.getElementById('perm-gx'),
+            or: document.getElementById('perm-or'),
+            ow: document.getElementById('perm-ow'),
+            ox: document.getElementById('perm-ox')
+        };
+
+        const updateOctalFromChecks = () => {
+            let u = (checks.ur.checked ? 4 : 0) + (checks.uw.checked ? 2 : 0) + (checks.ux.checked ? 1 : 0);
+            let g = (checks.gr.checked ? 4 : 0) + (checks.gw.checked ? 2 : 0) + (checks.gx.checked ? 1 : 0);
+            let o = (checks.or.checked ? 4 : 0) + (checks.ow.checked ? 2 : 0) + (checks.ox.checked ? 1 : 0);
+            modeInput.value = `0${u}${g}${o}`;
+        };
+
+        const updateChecksFromOctal = () => {
+            let val = modeInput.value.replace(/^0+/, '');
+            while (val.length < 3) val = '0' + val;
+            val = val.slice(-3);
+
+            const u = parseInt(val[0], 10) || 0;
+            const g = parseInt(val[1], 10) || 0;
+            const o = parseInt(val[2], 10) || 0;
+
+            checks.ur.checked = (u & 4) !== 0;
+            checks.uw.checked = (u & 2) !== 0;
+            checks.ux.checked = (u & 1) !== 0;
+
+            checks.gr.checked = (g & 4) !== 0;
+            checks.gw.checked = (g & 2) !== 0;
+            checks.gx.checked = (g & 1) !== 0;
+
+            checks.or.checked = (o & 4) !== 0;
+            checks.ow.checked = (o & 2) !== 0;
+            checks.ox.checked = (o & 1) !== 0;
+        };
+
+        Object.values(checks).forEach(cb => {
+            if (cb) cb.addEventListener('change', updateOctalFromChecks);
+        });
+
+        modeInput.addEventListener('input', updateChecksFromOctal);
     }
 
     async loadDirectory(dir) {
         this.currentDirectory = dir || '/';
         this.renderBreadcrumbs();
-        
+        if (this.selectAllCheckbox) this.selectAllCheckbox.checked = false;
+        this.updateBulkToolbar();
+
         if (this.tbody) {
-            this.tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">Loading directory...</td></tr>';
+            this.tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">Loading directory contents...</td></tr>';
         }
 
         try {
@@ -46,7 +148,24 @@ class FileManager {
             this.renderFiles(res.data || []);
         } catch (e) {
             if (this.tbody) {
-                this.tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 24px;">Failed to load files: ${App.escapeHtml(e.message)}</td></tr>`;
+                const msg = e.message || '';
+                const isConnErr = msg.includes('Wings Daemon connection failed') ||
+                                  msg.includes('Connection timed out') ||
+                                  msg.includes('Failed to connect') ||
+                                  msg.includes('cURL error');
+
+                if (isConnErr) {
+                    this.tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 36px 20px;">
+                                <div style="font-size: 32px; margin-bottom: 8px;">🔌</div>
+                                <div style="color: #f87171; font-weight: 700; font-size: 15px; margin-bottom: 4px;">Node-ul nu este disponibil momentan.</div>
+                                <div style="color: var(--text-secondary); font-size: 13px;">Nu s-a putut stabili conexiunea cu daemonul Wings. Vă rugăm să verificați dacă nodul este pornit.</div>
+                            </td>
+                        </tr>`;
+                } else {
+                    this.tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 24px;">Failed to load files: ${App.escapeHtml(msg)}</td></tr>`;
+                }
             }
         }
     }
@@ -62,7 +181,7 @@ class FileManager {
             cumPath += '/' + p;
             const isLast = idx === parts.length - 1;
             if (isLast) {
-                html += ` <span style="color: var(--text-muted);">/</span> <span style="color: #fff; font-weight: 600;">${App.escapeHtml(p)}</span>`;
+                html += ` <span style="color: var(--text-muted);">/</span> <span style="color: #eceff4; font-weight: 600;">${App.escapeHtml(p)}</span>`;
             } else {
                 const targetPath = cumPath;
                 html += ` <span style="color: var(--text-muted);">/</span> <a href="javascript:void(0)" onclick="window.fileManager.loadDirectory('${targetPath}')" style="color: #60a5fa;">${App.escapeHtml(p)}</a>`;
@@ -87,11 +206,11 @@ class FileManager {
         if (!this.tbody) return;
 
         if (files.length === 0) {
-            this.tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px;">This directory is empty.</td></tr>';
+            this.tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 28px;">This directory is empty.</td></tr>';
             return;
         }
 
-        // Sort: directories first, then files alphabetically
+        // Sort: directories first, then alphabetically
         files.sort((a, b) => {
             const aItem = a.attributes || a;
             const bItem = b.attributes || b;
@@ -104,7 +223,7 @@ class FileManager {
         });
 
         let rows = '';
-        files.forEach(f => {
+        files.forEach((f, idx) => {
             const item = f.attributes || f;
             const isDir = this.checkIsDir(item);
             const fileName = item.name || '';
@@ -113,28 +232,195 @@ class FileManager {
             const sizeStr = isDir ? '-' : this.formatBytes(item.size || 0);
             const rawDate = item.modified || item.modified_at || item.created || item.created_at;
             const dateStr = rawDate ? new Date(rawDate).toLocaleString() : '-';
+            const rawMode = item.mode || (isDir ? '0755' : '0644');
 
             rows += `
-                <tr>
-                    <td style="text-align: center;"><input type="checkbox" class="file-select-box" value="${App.escapeHtml(fileName)}"></td>
+                <tr class="file-table-row">
+                    <td style="text-align: center;">
+                        <input type="checkbox" class="file-select-box" value="${App.escapeHtml(fileName)}" style="cursor: pointer;">
+                    </td>
                     <td>
                         <span style="margin-right: 8px;">${icon}</span>
                         ${isDir
-                            ? `<a href="javascript:void(0)" onclick="window.fileManager.loadDirectory('${fullPath}')" style="font-weight: 600; color: #fff;">${App.escapeHtml(fileName)}</a>`
+                            ? `<a href="javascript:void(0)" onclick="window.fileManager.loadDirectory('${fullPath}')" style="font-weight: 600; color: #eceff4;">${App.escapeHtml(fileName)}</a>`
                             : `<a href="/server/${this.serverUuid.substring(0, 8)}/files/edit?file=${encodeURIComponent(fullPath)}" style="color: #cbd5e1;">${App.escapeHtml(fileName)}</a>`
                         }
                     </td>
                     <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);">${sizeStr}</td>
                     <td style="font-size: 12px; color: var(--text-muted);">${dateStr}</td>
-                    <td style="text-align: right;">
-                        ${!isDir ? `<a href="javascript:void(0)" onclick="window.fileManager.downloadFile('${fullPath}')" class="btn btn-secondary btn-sm" style="padding: 2px 8px;">Download</a>` : ''}
-                        <button class="btn btn-danger btn-sm" style="padding: 2px 8px;" onclick="window.fileManager.deleteFile('${App.escapeHtml(fileName)}')">Delete</button>
+                    <td style="text-align: right; position: relative;">
+                        <div class="file-actions-dropdown" style="display: inline-block; position: relative;">
+                            <button type="button" class="btn btn-secondary btn-sm file-dropdown-btn" onclick="window.fileManager.toggleDropdown(event, 'drop-${idx}')" style="padding: 2px 8px; font-weight: 700; font-size: 14px; line-height: 1;">&#8942;</button>
+                            <div id="drop-${idx}" class="file-dropdown-menu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 4px; background: #181920; border: 1px solid var(--border-color); border-radius: 8px; min-width: 140px; z-index: 50; box-shadow: 0 10px 20px rgba(0,0,0,0.5); text-align: left; overflow: hidden;">
+                                <a href="javascript:void(0)" onclick="window.fileManager.openRenameModal('${App.escapeHtml(fileName)}')" style="display: block; padding: 8px 14px; font-size: 12.5px; color: #eceff4; text-decoration: none;">Rename</a>
+                                <a href="javascript:void(0)" onclick="window.fileManager.openChmodModal('${App.escapeHtml(fileName)}', '${App.escapeHtml(rawMode)}')" style="display: block; padding: 8px 14px; font-size: 12.5px; color: #eceff4; text-decoration: none;">Permissions</a>
+                                ${!isDir ? `<a href="javascript:void(0)" onclick="window.fileManager.downloadFile('${fullPath}')" style="display: block; padding: 8px 14px; font-size: 12.5px; color: #eceff4; text-decoration: none;">Download</a>` : ''}
+                                <div style="height: 1px; background: rgba(255,255,255,0.06);"></div>
+                                <a href="javascript:void(0)" onclick="window.fileManager.deleteFile('${App.escapeHtml(fileName)}')" style="display: block; padding: 8px 14px; font-size: 12.5px; color: #f87171; text-decoration: none;">Delete</a>
+                            </div>
+                        </div>
                     </td>
                 </tr>
             `;
         });
 
         this.tbody.innerHTML = rows;
+
+        // Re-attach checkbox change events
+        const boxes = document.querySelectorAll('.file-select-box');
+        boxes.forEach(b => {
+            b.addEventListener('change', () => this.updateBulkToolbar());
+        });
+    }
+
+    toggleDropdown(e, dropdownId) {
+        e.stopPropagation();
+        const menu = document.getElementById(dropdownId);
+        const isShown = menu.style.display === 'block';
+
+        document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
+        if (!isShown) {
+            menu.style.display = 'block';
+        }
+    }
+
+    getSelectedFiles() {
+        const boxes = document.querySelectorAll('.file-select-box:checked');
+        return Array.from(boxes).map(b => b.value);
+    }
+
+    updateBulkToolbar() {
+        const selected = this.getSelectedFiles();
+        const allBoxes = document.querySelectorAll('.file-select-box');
+
+        if (this.selectAllCheckbox && allBoxes.length > 0) {
+            this.selectAllCheckbox.checked = (selected.length === allBoxes.length);
+        }
+
+        if (this.bulkToolbar) {
+            if (selected.length > 0) {
+                this.bulkToolbar.style.display = 'flex';
+                if (this.selectedCountEl) {
+                    this.selectedCountEl.textContent = `${selected.length} item${selected.length > 1 ? 's' : ''} selected`;
+                }
+            } else {
+                this.bulkToolbar.style.display = 'none';
+            }
+        }
+    }
+
+    async archiveSelected() {
+        const files = this.getSelectedFiles();
+        if (files.length === 0) return;
+
+        App.toast(`Archiving ${files.length} item(s) to .tar.gz...`, 'info');
+        try {
+            await App.request(`/api/client/servers/${this.serverUuid}/files/compress`, {
+                method: 'POST',
+                body: {
+                    root: this.currentDirectory,
+                    files: files
+                }
+            });
+            App.toast('Archive created successfully.', 'success');
+            this.loadDirectory(this.currentDirectory);
+        } catch (e) {
+            App.toast('Failed to create archive: ' + e.message, 'danger');
+        }
+    }
+
+    async deleteSelected() {
+        const files = this.getSelectedFiles();
+        if (files.length === 0) return;
+
+        if (!confirm(`Are you sure you want to delete ${files.length} selected item(s)?`)) return;
+
+        try {
+            await App.request(`/api/client/servers/${this.serverUuid}/files/delete`, {
+                method: 'POST',
+                body: {
+                    root: this.currentDirectory,
+                    files: files
+                }
+            });
+            App.toast(`Deleted ${files.length} item(s).`, 'success');
+            this.loadDirectory(this.currentDirectory);
+        } catch (e) {
+            App.toast('Failed to delete files: ' + e.message, 'danger');
+        }
+    }
+
+    openRenameModal(fileName) {
+        document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
+        document.getElementById('rename-old-name').value = fileName;
+        document.getElementById('rename-new-name').value = fileName;
+        App.openModal('modal-rename-file');
+    }
+
+    async executeRename() {
+        const oldName = document.getElementById('rename-old-name').value;
+        const newName = document.getElementById('rename-new-name').value.trim();
+
+        if (!newName || newName === oldName) {
+            App.closeModal('modal-rename-file');
+            return;
+        }
+
+        try {
+            await App.request(`/api/client/servers/${this.serverUuid}/files/rename`, {
+                method: 'PUT',
+                body: {
+                    root: this.currentDirectory,
+                    files: [{ from: oldName, to: newName }]
+                }
+            });
+            App.closeModal('modal-rename-file');
+            App.toast(`Renamed '${oldName}' to '${newName}'.`, 'success');
+            this.loadDirectory(this.currentDirectory);
+        } catch (e) {
+            App.toast('Failed to rename: ' + e.message, 'danger');
+        }
+    }
+
+    openChmodModal(fileName, mode) {
+        document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
+        document.getElementById('chmod-target-name').value = fileName;
+        document.getElementById('chmod-target-label').textContent = fileName;
+
+        // Clean mode to octal format
+        let cleanMode = '0644';
+        if (mode && typeof mode === 'string') {
+            const matches = mode.match(/[0-7]{3,4}/);
+            if (matches) cleanMode = matches[0].length === 3 ? '0' + matches[0] : matches[0];
+        }
+
+        const modeInput = document.getElementById('chmod-mode-input');
+        if (modeInput) {
+            modeInput.value = cleanMode;
+            modeInput.dispatchEvent(new Event('input'));
+        }
+
+        App.openModal('modal-chmod-file');
+    }
+
+    async executeChmod() {
+        const fileName = document.getElementById('chmod-target-name').value;
+        const modeInput = document.getElementById('chmod-mode-input').value.trim();
+
+        try {
+            await App.request(`/api/client/servers/${this.serverUuid}/files/chmod`, {
+                method: 'POST',
+                body: {
+                    root: this.currentDirectory,
+                    files: [{ file: fileName, mode: modeInput }]
+                }
+            });
+            App.closeModal('modal-chmod-file');
+            App.toast(`Permissions updated for '${fileName}'.`, 'success');
+            this.loadDirectory(this.currentDirectory);
+        } catch (e) {
+            App.toast('Failed to update permissions: ' + e.message, 'danger');
+        }
     }
 
     async createDirectory() {
@@ -146,7 +432,7 @@ class FileManager {
             await App.request(`/api/client/servers/${this.serverUuid}/files/create-folder`, {
                 method: 'POST',
                 body: {
-                    root: this.currentDirectory,
+                    path: this.currentDirectory,
                     name: name
                 }
             });
@@ -160,6 +446,7 @@ class FileManager {
     }
 
     async deleteFile(name) {
+        document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
         if (!confirm(`Are you sure you want to delete '${name}'?`)) return;
 
         try {
@@ -178,6 +465,7 @@ class FileManager {
     }
 
     async downloadFile(filePath) {
+        document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
         try {
             const res = await App.request(`/api/client/servers/${this.serverUuid}/files/download?file=${encodeURIComponent(filePath)}`);
             const dlUrl = res.url || (res.attributes && res.attributes.url);
@@ -195,7 +483,14 @@ class FileManager {
         const files = this.uploadInput.files;
         if (!files || files.length === 0) return;
 
-        if (this.progressBar) this.progressBar.style.width = '10%';
+        const overlayModal = document.getElementById('modal-upload-overlay');
+        const overlayName = document.getElementById('upload-modal-filename');
+        const overlaySize = document.getElementById('upload-modal-size');
+        const overlayBar = document.getElementById('upload-modal-bar');
+        const overlayPercent = document.getElementById('upload-modal-percent');
+        const overlayStatus = document.getElementById('upload-modal-status');
+
+        if (overlayModal) overlayModal.classList.add('active');
 
         try {
             const urlData = await App.request(`/api/client/servers/${this.serverUuid}/files/upload`);
@@ -206,6 +501,14 @@ class FileManager {
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
+                const totalMb = (file.size / (1024 * 1024)).toFixed(2);
+
+                if (overlayName) overlayName.textContent = file.name;
+                if (overlaySize) overlaySize.textContent = `0 MB / ${totalMb} MB (File ${i + 1} of ${files.length})`;
+                if (overlayBar) overlayBar.style.width = '0%';
+                if (overlayPercent) overlayPercent.textContent = '0%';
+                if (overlayStatus) overlayStatus.textContent = `Uploading directly to Wings node...`;
+
                 const formData = new FormData();
                 formData.append('files', file);
 
@@ -214,9 +517,13 @@ class FileManager {
 
                 await new Promise((resolve, reject) => {
                     xhr.upload.onprogress = (e) => {
-                        if (e.lengthComputable && this.progressBar) {
-                            const percent = Math.round((e.loaded / e.total) * 100);
-                            this.progressBar.style.width = `${percent}%`;
+                        if (e.lengthComputable) {
+                            const loadedMb = (e.loaded / (1024 * 1024)).toFixed(2);
+                            const percent = Math.min(100, Math.round((e.loaded / e.total) * 100));
+                            if (overlayBar) overlayBar.style.width = `${percent}%`;
+                            if (overlayPercent) overlayPercent.textContent = `${percent}%`;
+                            if (overlaySize) overlaySize.textContent = `${loadedMb} MB / ${totalMb} MB (File ${i + 1} of ${files.length})`;
+                            if (this.progressBar) this.progressBar.style.width = `${percent}%`;
                         }
                     };
                     xhr.onload = () => {
@@ -226,18 +533,23 @@ class FileManager {
                             reject(new Error(`Upload failed with status ${xhr.status}`));
                         }
                     };
-                    xhr.onerror = () => reject(new Error('Upload network error'));
+                    xhr.onerror = () => reject(new Error('Upload network error: Node unreachable'));
                     xhr.open('POST', targetUrl);
                     xhr.send(formData);
                 });
             }
 
-            App.toast('Upload complete!', 'success');
+            if (overlayStatus) overlayStatus.textContent = 'Upload complete!';
+            App.toast('Files uploaded successfully!', 'success');
+            setTimeout(() => {
+                if (overlayModal) overlayModal.classList.remove('active');
+            }, 600);
             this.uploadInput.value = '';
             if (this.progressBar) this.progressBar.style.width = '0%';
             this.loadDirectory(this.currentDirectory);
         } catch (e) {
             App.toast('Upload error: ' + e.message, 'danger');
+            if (overlayModal) overlayModal.classList.remove('active');
             if (this.progressBar) this.progressBar.style.width = '0%';
         }
     }

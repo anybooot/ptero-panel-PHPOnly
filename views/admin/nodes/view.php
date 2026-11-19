@@ -7,10 +7,45 @@
     </div>
     <div style="display: flex; gap: 8px;">
         <a href="/admin/nodes" class="btn btn-secondary btn-sm">Back to Nodes</a>
-        <form action="/admin/nodes/view/<?= $node['id'] ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this node? All unassigned allocations will be deleted.');" style="margin: 0;">
+        <button type="button" class="btn btn-danger btn-sm" onclick="App.openModal('modal-delete-node')">Delete Node</button>
+    </div>
+</div>
+
+<!-- Delete Node Confirmation Modal -->
+<div class="modal-backdrop" id="modal-delete-node">
+    <div class="modal-dialog" style="max-width: 520px;">
+        <div class="modal-header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.2);">
+            <h3 class="modal-title" style="color: #f87171;">Ștergere Nod: <?= \Pterodactyl\Core\View::e($node['name']) ?></h3>
+            <button class="modal-close" data-modal-close>&times;</button>
+        </div>
+        <form action="/admin/nodes/view/<?= $node['id'] ?>" method="POST">
             <?= \Pterodactyl\Core\View::csrf() ?>
             <input type="hidden" name="_method" value="DELETE">
-            <button type="submit" class="btn btn-danger btn-sm">Delete Node</button>
+            <div class="modal-body">
+                <?php $srvCount = (int)($stats['servers_count'] ?? 0); ?>
+                <?php if ($srvCount > 0): ?>
+                    <div class="alert alert-danger" style="margin-bottom: 16px; border-left: 4px solid #ef4444;">
+                        <strong>Atenție!</strong> Acest nod are în prezent <strong style="color: #fff;"><?= $srvCount ?> server(e)</strong> create pe el.
+                    </div>
+                    <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px;">
+                        Puteți alege să ștergeți nodul împreună cu toate cele <strong style="color: #fff;"><?= $srvCount ?> server(e)</strong> asociate, sau să anulați pentru a muta serverele mai întâi.
+                    </p>
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #f87171; cursor: pointer; background: rgba(239,68,68,0.1); padding: 10px 14px; border-radius: 6px;">
+                        <input type="checkbox" name="delete_servers" value="1" required id="confirm-delete-all-srv">
+                        <span>Confirm că doresc să șterg toate cele <?= $srvCount ?> servere și acest nod</span>
+                    </label>
+                <?php else: ?>
+                    <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;">
+                        Sunteți sigur că doriți să ștergeți acest nod? Toate alocările neasociate vor fi șterse definitiv.
+                    </p>
+                <?php endif; ?>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-modal-close>Anulează</button>
+                <button type="submit" class="btn btn-danger">
+                    <?= $srvCount > 0 ? "Șterge nodul și cele {$srvCount} servere" : "Șterge Nodul" ?>
+                </button>
+            </div>
         </form>
     </div>
 </div>

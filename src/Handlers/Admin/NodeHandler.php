@@ -422,16 +422,41 @@ YAML;
 
     public function delete(Request $request, string $id): Response
     {
-        $serverCount = (int)(Database::queryOne("SELECT COUNT(*) as c FROM `servers` WHERE `node_id` = :id", ['id' => $id])['c'] ?? 0);
-        if ($serverCount > 0) {
-            Session::flash('error', 'Cannot delete a node that has servers assigned to it.');
+        $node = Database::queryOne("SELECT * FROM `nodes` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        if (!$node) {
+            Session::flash('error', 'Node not found.');
             return Response::redirect('/admin/nodes');
+        }
+
+        $servers = Database::query("SELECT `id`, `uuid` FROM `servers` WHERE `node_id` = :id", ['id' => $id]);
+        $serverCount = count($servers);
+
+        if ($serverCount > 0) {
+            $deleteServers = $request->input('delete_servers') === '1' || $request->input('delete_servers') === 1;
+            if (!$deleteServers) {
+                Session::flash('error', "Acest nod are {$serverCount} servere create pe el. Confirmați ștergerea tuturor serverelor pentru a continua.");
+                return Response::redirect("/admin/nodes/view/{$id}");
+            }
+
+            foreach ($servers as $srv) {
+                Database::execute("DELETE FROM `subusers` WHERE `server_id` = :id", ['id' => $srv['id']]);
+                Database::execute("DELETE FROM `databases` WHERE `server_id` = :id", ['id' => $srv['id']]);
+                Database::execute("DELETE FROM `backups` WHERE `server_id` = :id", ['id' => $srv['id']]);
+                Database::execute("DELETE FROM `tasks` WHERE `schedule_id` IN (SELECT `id` FROM `schedules` WHERE `server_id` = :id)", ['id' => $srv['id']]);
+                Database::execute("DELETE FROM `schedules` WHERE `server_id` = :id", ['id' => $srv['id']]);
+                Database::execute("DELETE FROM `server_variables` WHERE `server_id` = :id", ['id' => $srv['id']]);
+                Database::execute("DELETE FROM `activity_logs` WHERE `server_id` = :id", ['id' => $srv['id']]);
+                Database::execute("UPDATE `allocations` SET `server_id` = NULL WHERE `server_id` = :id", ['id' => $srv['id']]);
+                Database::execute("DELETE FROM `servers` WHERE `id` = :id", ['id' => $srv['id']]);
+            }
         }
 
         Database::execute("DELETE FROM `allocations` WHERE `node_id` = :id", ['id' => $id]);
         Database::execute("DELETE FROM `nodes` WHERE `id` = :id", ['id' => $id]);
 
-        Session::flash('success', 'Node deleted successfully.');
+        Session::flash('success', $serverCount > 0
+            ? "Nodul și toate cele {$serverCount} server(e) asociate au fost șterse cu succes."
+            : "Nodul a fost șters cu succes.");
         return Response::redirect('/admin/nodes');
     }
 }

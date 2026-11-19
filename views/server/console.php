@@ -1,15 +1,54 @@
 <?php $this->extend('layouts.server'); ?>
 
-<div class="page-header" style="margin-bottom: 16px;">
-    <div>
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <h1 class="page-title"><?= \Pterodactyl\Core\View::e($server['name']) ?></h1>
-            <span id="server-status-badge" class="badge badge-secondary"><?= \Pterodactyl\Core\View::e($server['status'] ?: 'offline') ?></span>
+<!-- Modern Upper Left Stats & Power Header (Point 17) -->
+<div class="console-top-container" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px;">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+        <!-- Server Title & Status -->
+        <div style="display: flex; align-items: center; gap: 8px; margin-right: 6px;">
+            <span id="stat-status-dot" class="status-pulse-dot" style="background-color: <?= ($server['status'] === 'running' ? '#10b981' : ($server['status'] === 'starting' ? '#f59e0b' : '#ef4444')) ?>;"></span>
+            <h1 class="page-title" style="margin: 0; font-size: 20px; font-weight: 800;"><?= \Pterodactyl\Core\View::e($server['name']) ?></h1>
+            <span id="server-status-badge" class="badge badge-secondary" style="font-size: 11px; text-transform: uppercase;"><?= \Pterodactyl\Core\View::e($server['status'] ?: 'offline') ?></span>
         </div>
-        <p class="page-subtitle">
-            <?= \Pterodactyl\Core\View::e($allocation ? ($allocation['ip_alias'] ?: $allocation['ip']) . ':' . $allocation['port'] : 'No allocation') ?>
-            &bull; Node: <?= \Pterodactyl\Core\View::e($node['name']) ?>
-        </p>
+
+        <!-- IP Address with Click to Copy (Point 17) -->
+        <?php $allocAddr = $allocation ? ($allocation['ip_alias'] ?: $allocation['ip']) . ':' . $allocation['port'] : 'No allocation'; ?>
+        <div id="btn-copy-server-ip" onclick="copyConsoleIp('<?= \Pterodactyl\Core\View::e($allocAddr) ?>')" title="Click to copy IP:Port" style="cursor: pointer; background: #181920; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px; transition: border-color 0.15s ease;" onmouseenter="this.style.borderColor='rgba(255,255,255,0.2)'" onmouseleave="this.style.borderColor='var(--border-color)'">
+            <span style="font-size: 13px;">🌐</span>
+            <span id="console-ip-text" style="font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; color: #eceff4;"><?= \Pterodactyl\Core\View::e($allocAddr) ?></span>
+            <span id="console-ip-copy-icon" style="color: var(--text-muted); font-size: 11px;">📋</span>
+        </div>
+
+        <!-- Live RAM Widget (Point 17) -->
+        <div style="background: #181920; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px;">
+            <span style="color: #10b981; font-size: 11.5px; font-weight: 700;">RAM</span>
+            <span style="font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: #eceff4;">
+                <span id="top-stat-ram">0 MiB</span>
+                <span style="color: var(--text-muted); font-weight: 400; font-size: 11px;">/ <?= (int)$server['memory'] > 0 ? (int)$server['memory'] . ' MiB' : '∞' ?></span>
+            </span>
+        </div>
+
+        <!-- Live CPU Widget (Point 17) -->
+        <div style="background: #181920; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px;">
+            <span style="color: #3b82f6; font-size: 11.5px; font-weight: 700;">CPU</span>
+            <span style="font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: #eceff4;">
+                <span id="top-stat-cpu">0%</span>
+                <span style="color: var(--text-muted); font-weight: 400; font-size: 11px;">/ <?= (int)$server['cpu'] > 0 ? (int)$server['cpu'] . '%' : '∞' ?></span>
+            </span>
+        </div>
+
+        <!-- Live Disk Widget (Point 17) -->
+        <div style="background: #181920; border: 1px solid var(--border-color); border-radius: 8px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 8px;">
+            <span style="color: #f59e0b; font-size: 11.5px; font-weight: 700;">DISK</span>
+            <span style="font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: #eceff4;">
+                <span id="top-stat-disk">--</span>
+                <span style="color: var(--text-muted); font-weight: 400; font-size: 11px;">/ <?= (int)$server['disk'] > 0 ? (int)$server['disk'] . ' MiB' : '∞' ?></span>
+            </span>
+        </div>
+
+        <!-- Node Widget -->
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 6px 10px; font-size: 11.5px; color: var(--text-muted);">
+            Node: <span style="color: #cbd5e1;"><?= \Pterodactyl\Core\View::e($node['name']) ?></span>
+        </div>
     </div>
 
     <!-- Power Action Buttons -->
@@ -64,6 +103,20 @@
 </div>
 
 <script>
+function copyConsoleIp(addr) {
+    if (!addr || addr === 'No allocation') return;
+    navigator.clipboard.writeText(addr).then(() => {
+        App.toast(`IP Address ${addr} copied to clipboard!`, 'success');
+        const icon = document.getElementById('console-ip-copy-icon');
+        if (icon) {
+            icon.textContent = '✓';
+            setTimeout(() => icon.textContent = '📋', 1500);
+        }
+    }).catch(() => {
+        App.toast('Failed to copy IP', 'danger');
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize Live Charts
     if (window.ServerStats) {

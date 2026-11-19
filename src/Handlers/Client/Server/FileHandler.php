@@ -77,7 +77,11 @@ class FileHandler
 
             return Response::json(['data' => $files]);
         } catch (\Throwable $e) {
-            return Response::json(['error' => $e->getMessage()], 500);
+            $msg = $e->getMessage();
+            if (str_contains($msg, 'Wings Daemon connection failed') || str_contains($msg, 'Connection timed out') || str_contains($msg, 'Failed to connect') || str_contains($msg, 'cURL error')) {
+                $msg = 'Node-ul nu este disponibil momentan.';
+            }
+            return Response::json(['error' => $msg], 500);
         }
     }
 

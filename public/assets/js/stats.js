@@ -58,6 +58,8 @@ const ServerStats = (() => {
 
         const cpuValEl = document.getElementById('stat-cpu-val');
         if (cpuValEl) cpuValEl.textContent = `${cpuPercent}%`;
+        const topCpu = document.getElementById('top-stat-cpu');
+        if (topCpu) topCpu.textContent = `${cpuPercent}%`;
 
         // RAM
         const ramBytes = stats.memory_bytes || 0;
@@ -65,13 +67,18 @@ const ServerStats = (() => {
         data.ram.push(ramMiB);
         if (data.ram.length > maxPoints) data.ram.shift();
 
+        const ramText = ramMiB >= 1024 ? `${(ramMiB / 1024).toFixed(2)} GiB` : `${ramMiB} MiB`;
         const ramValEl = document.getElementById('stat-ram-val');
-        if (ramValEl) {
-            if (ramMiB >= 1024) {
-                ramValEl.textContent = `${(ramMiB / 1024).toFixed(2)} GiB`;
-            } else {
-                ramValEl.textContent = `${ramMiB} MiB`;
-            }
+        if (ramValEl) ramValEl.textContent = ramText;
+        const topRam = document.getElementById('top-stat-ram');
+        if (topRam) topRam.textContent = ramText;
+
+        // Disk
+        const diskBytes = stats.disk_bytes || 0;
+        if (diskBytes > 0) {
+            const diskMiB = Math.round(diskBytes / 1024 / 1024);
+            const topDisk = document.getElementById('top-stat-disk');
+            if (topDisk) topDisk.textContent = diskMiB >= 1024 ? `${(diskMiB / 1024).toFixed(2)} GiB` : `${diskMiB} MiB`;
         }
 
         // Network

@@ -16,13 +16,37 @@ class ServerConsole {
         this.historyIndex = this.history.length;
         this.reconnectTimer = null;
         this.autoScroll = true;
+        this.storageKey = `server_console_buffer_${this.serverUuid}`;
 
         this.init();
     }
 
     async init() {
+        this.restoreBuffer();
         this.bindEvents();
         await this.connect();
+    }
+
+    restoreBuffer() {
+        if (!this.terminalWindow) return;
+        try {
+            const saved = sessionStorage.getItem(this.storageKey);
+            if (saved) {
+                this.terminalWindow.innerHTML = saved;
+                this.terminalWindow.scrollTop = this.terminalWindow.scrollHeight;
+            }
+        } catch (e) {}
+    }
+
+    persistBuffer() {
+        if (!this.terminalWindow) return;
+        try {
+            // Cap at 400 lines to avoid sessionStorage limits
+            while (this.terminalWindow.children.length > 400) {
+                this.terminalWindow.removeChild(this.terminalWindow.firstChild);
+            }
+            sessionStorage.setItem(this.storageKey, this.terminalWindow.innerHTML);
+        } catch (e) {}
     }
 
     bindEvents() {
@@ -71,7 +95,7 @@ class ServerConsole {
 
     async connect() {
         try {
-            this.log('Connecting to daemon socket...', 'ansi-dim');
+            this.log('Connecting to the node...', 'ansi-dim');
             const data = await App.request(`/api/client/servers/${this.serverUuid}/websocket`);
             this.token = data.data.token;
             this.socketUrl = data.data.socket;
@@ -79,7 +103,7 @@ class ServerConsole {
             this.socket = new WebSocket(this.socketUrl);
 
             this.socket.onopen = () => {
-                this.log('Connected to daemon socket. Authenticating...', 'ansi-dim');
+                this.log('Connected to the node. Authenticating...', 'ansi-dim');
                 this.sendEvent('auth', [this.token]);
             };
 
@@ -88,16 +112,16 @@ class ServerConsole {
             };
 
             this.socket.onclose = () => {
-                this.log('Connection to daemon closed. Reconnecting in 3s...', 'ansi-yellow');
+                this.log('Connection to the node was closed. Reconnecting in 3s...', 'ansi-yellow');
                 clearTimeout(this.reconnectTimer);
                 this.reconnectTimer = setTimeout(() => this.connect(), 3000);
             };
 
             this.socket.onerror = () => {
-                this.log('WebSocket error encountered.', 'ansi-red');
+                this.log('Unable to reach the node. Please ensure the Wings service is running.', 'ansi-red');
             };
         } catch (e) {
-            this.log(`Failed to initialize WebSocket: ${e.message}`, 'ansi-red');
+            this.log(`Could not connect to the node: ${e.message.includes('403') ? 'Access Denied' : 'Node is currently unavailable'}`, 'ansi-red');
             clearTimeout(this.reconnectTimer);
             this.reconnectTimer = setTimeout(() => this.connect(), 5000);
         }
@@ -117,7 +141,8 @@ class ServerConsole {
 
             switch (event) {
                 case 'auth success':
-                    this.log('Socket authenticated. Live stream connected.', 'ansi-green');
+                    this.log('Connected to the node.', 'ansi-green');
+                    this.sendEvent('send logs');
                     this.sendEvent('send stats');
                     break;
 
@@ -139,7 +164,6 @@ class ServerConsole {
                     break;
 
                 case 'token expiring':
-                    // Refresh token
                     App.request(`/api/client/servers/${this.serverUuid}/websocket`).then(res => {
                         this.sendEvent('auth', [res.data.token]);
                     });
@@ -166,6 +190,12 @@ class ServerConsole {
         } else {
             this.statusBadge.classList.add('badge-secondary');
         }
+
+        // Also update any header status dots if present
+        const statusDot = document.getElementById('stat-status-dot');
+        if (statusDot) {
+            statusDot.style.backgroundColor = status === 'running' ? '#10b981' : (status === 'starting' ? '#f59e0b' : '#ef4444');
+        }
     }
 
     appendConsole(text) {
@@ -177,6 +207,7 @@ class ServerConsole {
         if (this.autoScroll) {
             this.terminalWindow.scrollTop = this.terminalWindow.scrollHeight;
         }
+        this.persistBuffer();
     }
 
     log(text, cssClass = '') {
@@ -201,14 +232,13 @@ class ServerConsole {
         if (this.autoScroll) {
             this.terminalWindow.scrollTop = this.terminalWindow.scrollHeight;
         }
+        this.persistBuffer();
     }
 
     parseAnsi(input) {
         if (!input) return '';
-        // Escape HTML tags first
         let html = input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-        // ANSI Color mapping
         const colorMap = {
             30: 'ansi-black', 31: 'ansi-red', 32: 'ansi-green', 33: 'ansi-yellow',
             34: 'ansi-blue', 35: 'ansi-magenta', 36: 'ansi-cyan', 37: 'ansi-white',
@@ -219,7 +249,6 @@ class ServerConsole {
             1: 'ansi-bold', 2: 'ansi-dim', 3: 'ansi-italic', 4: 'ansi-underline'
         };
 
-        // Replace ANSI sequences
         return html.replace(/\u001b\[([0-9;]+)m/g, (match, codes) => {
             const parts = codes.split(';');
             if (parts.includes('0')) {
@@ -234,13 +263,11 @@ class ServerConsole {
         const cmd = this.commandInput.value.trim();
         if (!cmd) return;
 
-        // Push to history
         this.history.push(cmd);
         if (this.history.length > 50) this.history.shift();
         localStorage.setItem(`cmd_history_${this.serverUuid}`, JSON.stringify(this.history));
         this.historyIndex = this.history.length;
 
-        // Send via WebSocket or fallback to HTTP
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
             this.sendEvent('send command', [cmd]);
         } else {

@@ -37,11 +37,15 @@ class SettingsHandler
 
     public function updateGeneral(Request $request): Response
     {
-        $appName = trim((string)$request->input('app:name', 'Pterodactyl'));
-        $appLocale = trim((string)$request->input('app:locale', 'en'));
+        $appName = trim((string)($request->input('app:name') ?? $request->input('app_name') ?? 'Pterodactyl'));
+        $appLocale = trim((string)($request->input('app:locale') ?? $request->input('app_locale') ?? 'en'));
 
-        self::setSetting('settings::app:name', $appName);
-        self::setSetting('settings::app:locale', $appLocale);
+        if ($appName !== '') {
+            self::setSetting('settings::app:name', $appName);
+        }
+        if ($appLocale !== '') {
+            self::setSetting('settings::app:locale', $appLocale);
+        }
 
         Session::flash('success', 'General settings updated successfully.');
         return Response::redirect('/admin/settings');

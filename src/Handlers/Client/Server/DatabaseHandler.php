@@ -50,8 +50,12 @@ class DatabaseHandler
             }
         }
 
+        $databaseLimit = $server['database_limit'] !== null ? (int)$server['database_limit'] : 0;
+        $databaseCount = count($databases);
+        $canCreate = ($databaseLimit < 0 || $server['database_limit'] === null || $databaseCount < $databaseLimit);
+
         if ($request->isJson()) {
-            return Response::json(['data' => $databases]);
+            return Response::json(['data' => $databases, 'meta' => ['limit' => $databaseLimit, 'count' => $databaseCount]]);
         }
 
         $html = View::render('server.databases', [
@@ -59,6 +63,9 @@ class DatabaseHandler
             'node' => $server['node'],
             'user' => $user,
             'databases' => $databases,
+            'databaseLimit' => $databaseLimit,
+            'databaseCount' => $databaseCount,
+            'canCreate' => $canCreate,
             'activeTab' => 'databases',
         ]);
 
@@ -75,10 +82,12 @@ class DatabaseHandler
         }
 
         // Check database limit
-        $limit = $server['database_limit'] ?? 0;
+        $limit = $server['database_limit'] !== null ? (int)$server['database_limit'] : 0;
         $countRow = Database::queryOne("SELECT COUNT(*) as count FROM `databases` WHERE `server_id` = :id", ['id' => $server['id']]);
-        if ($limit !== null && (int)$limit >= 0 && ($countRow['count'] ?? 0) >= (int)$limit) {
-            return Response::json(['error' => 'The database limit for this server has been reached.'], 400);
+        $currentCount = (int)($countRow['count'] ?? 0);
+
+        if ($limit >= 0 && $currentCount >= $limit) {
+            return Response::json(['error' => "Ați atins limita maximă de baze de date create pentru acest server ({$currentCount}/{$limit})."], 400);
         }
 
         $databaseName = trim((string)$request->input('database', ''));

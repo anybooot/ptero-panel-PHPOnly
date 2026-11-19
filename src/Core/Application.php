@@ -41,7 +41,6 @@ class Application
 
         // Configure Views
         View::setBaseDir($this->basePath . DIRECTORY_SEPARATOR . 'views');
-        View::share('appName', Config::get('APP_NAME', 'Pterodactyl'));
         View::share('appUrl', Config::get('APP_URL', 'http://localhost'));
 
         // Initialize Router
