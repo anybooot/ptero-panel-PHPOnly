@@ -28,6 +28,15 @@ class View
 
     public static function render(string $template, array $data = []): string
     {
+        if (!isset($data['appName']) && !isset(self::$shared['appName'])) {
+            try {
+                $setting = Database::queryOne("SELECT `value` FROM `settings` WHERE `key` = 'settings::app:name' LIMIT 1");
+                $data['appName'] = !empty($setting['value']) ? $setting['value'] : Config::get('APP_NAME', 'Pterodactyl');
+            } catch (\Throwable) {
+                $data['appName'] = Config::get('APP_NAME', 'Pterodactyl');
+            }
+        }
+
         $view = new self();
         return $view->renderTemplate($template, array_merge(self::$shared, $data));
     }

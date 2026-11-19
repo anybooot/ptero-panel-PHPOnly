@@ -105,7 +105,7 @@ class Request
             if (preg_match('/Bearer\s+(\S+)/i', $auth, $matches)) {
                 return $matches[1];
             }
-            if (str_starts_with($auth, 'ptlc_') || str_starts_with($auth, 'ptla_')) {
+            if (str_starts_with($auth, 'ptlc_') || str_starts_with($auth, 'ptla_') || (!str_contains($auth, ' ') && strlen($auth) > 10)) {
                 return $auth;
             }
         }

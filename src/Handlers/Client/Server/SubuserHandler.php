@@ -28,7 +28,7 @@ class SubuserHandler
         }
 
         $subusers = Database::query(
-            "SELECT su.*, u.`uuid` as user_uuid, u.`email`, u.`username`, u.`name_first`, u.`name_last`, u.`totp_authenticated`
+            "SELECT su.*, u.`uuid` as user_uuid, u.`email`, u.`username`, u.`name_first`, u.`name_last`, u.`use_totp` as totp_authenticated
              FROM `subusers` su
              JOIN `users` u ON u.`id` = su.`user_id`
              WHERE su.`server_id` = :server_id ORDER BY su.`id` ASC",

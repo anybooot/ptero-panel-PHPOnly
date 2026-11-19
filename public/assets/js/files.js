@@ -72,6 +72,17 @@ class FileManager {
         this.breadcrumbs.innerHTML = html;
     }
 
+    checkIsDir(f) {
+        const item = f.attributes || f;
+        if (item.directory !== undefined) return Boolean(item.directory);
+        if (item.is_directory !== undefined) return Boolean(item.is_directory);
+        if (item.is_file !== undefined) return !item.is_file;
+        if (item.file !== undefined) return !item.file;
+        if (item.mode && typeof item.mode === 'string') return item.mode.startsWith('d');
+        if (item.mimetype && item.mimetype === 'inode/directory') return true;
+        return false;
+    }
+
     renderFiles(files) {
         if (!this.tbody) return;
 
@@ -82,35 +93,42 @@ class FileManager {
 
         // Sort: directories first, then files alphabetically
         files.sort((a, b) => {
-            if (a.is_file === b.is_file) {
-                return a.name.localeCompare(b.name);
+            const aItem = a.attributes || a;
+            const bItem = b.attributes || b;
+            const aDir = this.checkIsDir(aItem);
+            const bDir = this.checkIsDir(bItem);
+            if (aDir === bDir) {
+                return (aItem.name || '').localeCompare(bItem.name || '');
             }
-            return a.is_file ? 1 : -1;
+            return aDir ? -1 : 1;
         });
 
         let rows = '';
         files.forEach(f => {
-            const isDir = !f.is_file;
-            const fullPath = (this.currentDirectory === '/' ? '' : this.currentDirectory) + '/' + f.name;
+            const item = f.attributes || f;
+            const isDir = this.checkIsDir(item);
+            const fileName = item.name || '';
+            const fullPath = (this.currentDirectory === '/' ? '' : this.currentDirectory) + '/' + fileName;
             const icon = isDir ? '📁' : '📄';
-            const sizeStr = isDir ? '-' : this.formatBytes(f.size || 0);
-            const dateStr = f.modified ? new Date(f.modified).toLocaleString() : '-';
+            const sizeStr = isDir ? '-' : this.formatBytes(item.size || 0);
+            const rawDate = item.modified || item.modified_at || item.created || item.created_at;
+            const dateStr = rawDate ? new Date(rawDate).toLocaleString() : '-';
 
             rows += `
                 <tr>
-                    <td style="text-align: center;"><input type="checkbox" class="file-select-box" value="${App.escapeHtml(f.name)}"></td>
+                    <td style="text-align: center;"><input type="checkbox" class="file-select-box" value="${App.escapeHtml(fileName)}"></td>
                     <td>
                         <span style="margin-right: 8px;">${icon}</span>
                         ${isDir
-                            ? `<a href="javascript:void(0)" onclick="window.fileManager.loadDirectory('${fullPath}')" style="font-weight: 600; color: #fff;">${App.escapeHtml(f.name)}</a>`
-                            : `<a href="/server/${this.serverUuid.substring(0, 8)}/files/edit?file=${encodeURIComponent(fullPath)}" style="color: #cbd5e1;">${App.escapeHtml(f.name)}</a>`
+                            ? `<a href="javascript:void(0)" onclick="window.fileManager.loadDirectory('${fullPath}')" style="font-weight: 600; color: #fff;">${App.escapeHtml(fileName)}</a>`
+                            : `<a href="/server/${this.serverUuid.substring(0, 8)}/files/edit?file=${encodeURIComponent(fullPath)}" style="color: #cbd5e1;">${App.escapeHtml(fileName)}</a>`
                         }
                     </td>
                     <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);">${sizeStr}</td>
                     <td style="font-size: 12px; color: var(--text-muted);">${dateStr}</td>
                     <td style="text-align: right;">
                         ${!isDir ? `<a href="javascript:void(0)" onclick="window.fileManager.downloadFile('${fullPath}')" class="btn btn-secondary btn-sm" style="padding: 2px 8px;">Download</a>` : ''}
-                        <button class="btn btn-danger btn-sm" style="padding: 2px 8px;" onclick="window.fileManager.deleteFile('${App.escapeHtml(f.name)}')">Delete</button>
+                        <button class="btn btn-danger btn-sm" style="padding: 2px 8px;" onclick="window.fileManager.deleteFile('${App.escapeHtml(fileName)}')">Delete</button>
                     </td>
                 </tr>
             `;
@@ -162,8 +180,11 @@ class FileManager {
     async downloadFile(filePath) {
         try {
             const res = await App.request(`/api/client/servers/${this.serverUuid}/files/download?file=${encodeURIComponent(filePath)}`);
-            if (res.url) {
-                window.location.href = res.url;
+            const dlUrl = res.url || (res.attributes && res.attributes.url);
+            if (dlUrl) {
+                window.location.href = dlUrl;
+            } else {
+                throw new Error('Download URL not returned by server.');
             }
         } catch (e) {
             App.toast('Download error: ' + e.message, 'danger');
@@ -178,7 +199,10 @@ class FileManager {
 
         try {
             const urlData = await App.request(`/api/client/servers/${this.serverUuid}/files/upload`);
-            const uploadUrl = urlData.url;
+            const uploadUrl = urlData.url || (urlData.attributes && urlData.attributes.url);
+            if (!uploadUrl) {
+                throw new Error('Unable to obtain signed upload URL.');
+            }
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];

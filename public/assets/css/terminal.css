@@ -93,9 +93,21 @@
 .ansi-bg-white { background-color: #475569; }
 
 .ansi-bold { font-weight: 700; }
-.ansi-dim { opacity: 0.7; }
+.ansi-dim { color: #94a3b8; opacity: 0.85; }
 .ansi-italic { font-style: italic; }
 .ansi-underline { text-decoration: underline; }
+
+.terminal-system-line {
+    padding: 2px 0;
+    line-height: 1.6;
+}
+
+.terminal-system-badge {
+    color: #3b82f6;
+    font-weight: 700;
+    margin-right: 6px;
+    user-select: none;
+}
 
 /* ================= Resource Graphs Grid ================= */
 .graphs-grid {

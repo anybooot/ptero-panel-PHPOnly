@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="/assets/css/pterodactyl.css">
     <link rel="stylesheet" href="/assets/css/terminal.css">
     
+    <script>window.PterodactylAppName = <?= json_encode($appName ?? 'Pterodactyl') ?>;</script>
     <script src="/assets/js/app.js" defer></script>
     <script src="/assets/js/stats.js" defer></script>
     <script src="/assets/js/console.js" defer></script>

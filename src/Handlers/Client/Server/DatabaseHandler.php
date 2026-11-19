@@ -75,9 +75,9 @@ class DatabaseHandler
         }
 
         // Check database limit
-        $limit = (int)($server['database_limit'] ?? 0);
+        $limit = $server['database_limit'] ?? 0;
         $countRow = Database::queryOne("SELECT COUNT(*) as count FROM `databases` WHERE `server_id` = :id", ['id' => $server['id']]);
-        if ($limit > 0 && ($countRow['count'] ?? 0) >= $limit) {
+        if ($limit !== null && (int)$limit >= 0 && ($countRow['count'] ?? 0) >= (int)$limit) {
             return Response::json(['error' => 'The database limit for this server has been reached.'], 400);
         }
 

@@ -116,7 +116,9 @@ document.getElementById('create-backup-form').addEventListener('submit', async (
         });
         App.toast('Backup generation started.', 'success');
         setTimeout(() => window.location.reload(), 800);
-    } catch (e) {}
+    } catch (e) {
+        App.toast('Backup creation failed: ' + e.message, 'danger');
+    }
 });
 
 async function downloadBackup(uuid) {

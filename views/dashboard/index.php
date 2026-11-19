@@ -35,29 +35,41 @@
                 };
                 $ip = $srv['allocation_alias'] ?: $srv['allocation_ip'];
                 $address = $ip ? "{$ip}:{$srv['allocation_port']}" : 'No allocation';
+                $memVal = (int)($srv['memory'] ?? 0);
+                $memStr = $memVal >= 1024 ? round($memVal / 1024, 1) . ' GB' : ($memVal > 0 ? $memVal . ' MB' : 'Unlimited');
+                $diskVal = (int)($srv['disk'] ?? 0);
+                $diskStr = $diskVal >= 1024 ? round($diskVal / 1024, 1) . ' GB' : ($diskVal > 0 ? $diskVal . ' MB' : 'Unlimited');
+                $cpuVal = (int)($srv['cpu'] ?? 0);
+                $cpuStr = $cpuVal > 0 ? $cpuVal . '%' : 'Unlimited';
             ?>
             <a href="/server/<?= $srv['uuidShort'] ?>" class="server-card">
                 <div>
                     <div class="server-card-header">
                         <div>
                             <div class="server-card-title"><?= \Pterodactyl\Core\View::e($srv['name']) ?></div>
-                            <div class="server-card-sub"><?= \Pterodactyl\Core\View::e($address) ?> &bull; <?= \Pterodactyl\Core\View::e($srv['node_name'] ?? 'Node') ?></div>
+                            <div class="server-card-sub">
+                                <span><?= \Pterodactyl\Core\View::e($address) ?></span>
+                                <span style="opacity: 0.4;">&bull;</span>
+                                <span><?= \Pterodactyl\Core\View::e($srv['node_name'] ?? 'Node') ?></span>
+                            </div>
                         </div>
-                        <span class="badge <?= $badgeClass ?>"><?= \Pterodactyl\Core\View::e($status) ?></span>
+                        <span class="badge <?= $badgeClass ?>">
+                            <?= \Pterodactyl\Core\View::e(strtoupper($status)) ?>
+                        </span>
                     </div>
                 </div>
 
                 <div class="server-card-stats">
                     <div>
-                        <div class="server-stat-val"><?= (int)$srv['cpu'] ?>%</div>
+                        <div class="server-stat-val"><?= $cpuStr ?></div>
                         <div class="server-stat-lbl">CPU Limit</div>
                     </div>
                     <div>
-                        <div class="server-stat-val"><?= round($srv['memory'] / 1024, 1) ?> GB</div>
+                        <div class="server-stat-val"><?= $memStr ?></div>
                         <div class="server-stat-lbl">Memory</div>
                     </div>
                     <div>
-                        <div class="server-stat-val"><?= round($srv['disk'] / 1024, 1) ?> GB</div>
+                        <div class="server-stat-val"><?= $diskStr ?></div>
                         <div class="server-stat-lbl">Disk</div>
                     </div>
                 </div>

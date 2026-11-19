@@ -724,7 +724,7 @@ class ServerHandler
         }
 
         $mounted = Database::query(
-            "SELECT m.*, ms.`id` as mount_server_id FROM `mount_server` ms
+            "SELECT m.* FROM `mount_server` ms
              JOIN `mounts` m ON m.`id` = ms.`mount_id`
              WHERE ms.`server_id` = :server_id",
             ['server_id' => $id]

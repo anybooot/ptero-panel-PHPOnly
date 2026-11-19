@@ -58,9 +58,9 @@ class BackupHandler
             return Response::json(['error' => 'You do not have permission to create backups.'], 403);
         }
 
-        $backupLimit = (int)($server['backup_limit'] ?? 0);
+        $backupLimit = $server['backup_limit'] ?? 0;
         $countRow = Database::queryOne("SELECT COUNT(*) as count FROM `backups` WHERE `server_id` = :id", ['id' => $server['id']]);
-        if ($backupLimit > 0 && ($countRow['count'] ?? 0) >= $backupLimit) {
+        if ($backupLimit !== null && (int)$backupLimit >= 0 && ($countRow['count'] ?? 0) >= (int)$backupLimit) {
             return Response::json(['error' => 'The backup limit for this server has been reached.'], 400);
         }
 
@@ -71,7 +71,11 @@ class BackupHandler
 
         $isLocked = $request->boolean('is_locked', false) ? 1 : 0;
         $ignored = (array)$request->input('ignored', []);
-        $backupUuid = bin2hex(random_bytes(16));
+        
+        $data = random_bytes(16);
+        $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
+        $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
+        $backupUuid = vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 
         $id = Database::insert('backups', [
             'server_id' => $server['id'],
@@ -91,7 +95,7 @@ class BackupHandler
             \Pterodactyl\Core\ActivityLogger::log('server:backup.create', $user, ['name' => $name, 'uuid' => $backupUuid], $request, $server);
             return Response::json(['id' => $id, 'uuid' => $backupUuid, 'name' => $name]);
         } catch (\Throwable $e) {
-            Database::execute("DELETE FROM `backups` WHERE `id` = :id", ['id' => $id]);
+            Database::execute("UPDATE `backups` SET `completed_at` = NOW() WHERE `id` = :id", ['id' => $id]);
             return Response::json(['error' => 'Failed to trigger backup on Wings: ' . $e->getMessage()], 500);
         }
     }

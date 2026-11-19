@@ -32,7 +32,7 @@
     <div class="login-box">
         <div style="text-align: center; margin-bottom: 24px;">
             <div style="font-size: 32px; font-weight: 800; color: #fff;">
-                <span style="color: #3b82f6;">▲</span> Pterodactyl
+                <span style="color: #3b82f6;">▲</span> <?= \Pterodactyl\Core\View::e($appName ?? 'Pterodactyl') ?>
             </div>
             <p style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">Log in to control your servers</p>
         </div>

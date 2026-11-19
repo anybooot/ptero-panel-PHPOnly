@@ -180,7 +180,27 @@ class ServerConsole {
     }
 
     log(text, cssClass = '') {
-        this.appendConsole(`<span class="${cssClass}">[Pterodactyl] ${App.escapeHtml(text)}</span>`);
+        if (!this.terminalWindow) return;
+        const line = document.createElement('div');
+        line.className = 'terminal-line terminal-system-line';
+
+        const prefix = document.createElement('span');
+        prefix.className = 'terminal-system-badge';
+        prefix.textContent = '[' + (window.PterodactylAppName || 'Pterodactyl') + '] ';
+        line.appendChild(prefix);
+
+        const content = document.createElement('span');
+        if (cssClass) {
+            content.className = cssClass;
+        }
+        content.textContent = text;
+        line.appendChild(content);
+
+        this.terminalWindow.appendChild(line);
+
+        if (this.autoScroll) {
+            this.terminalWindow.scrollTop = this.terminalWindow.scrollHeight;
+        }
     }
 
     parseAnsi(input) {

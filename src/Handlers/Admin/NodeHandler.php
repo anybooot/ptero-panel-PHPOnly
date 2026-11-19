@@ -198,12 +198,13 @@ class NodeHandler
             return Response::redirect('/admin/nodes');
         }
 
-        $panelUrl = (string)Config::get('APP_URL', 'http://localhost');
+        $panelUrl = rtrim((string)Config::get('APP_URL', 'http://localhost'), '/');
         $tokenSecret = Encrypter::decryptString($node['daemon_token']);
         $bearerToken = "{$node['daemon_token_id']}.{$tokenSecret}";
         $sslEnabled = ($node['scheme'] === 'https') ? 'true' : 'false';
 
         $uploadLimit = (int)($node['upload_size'] ?? $node['uploadSize'] ?? 100);
+        $daemonData = !empty($node['daemonBase']) ? $node['daemonBase'] : '/var/lib/pterodactyl/volumes';
 
         // Build config.yml content
         $configYml = <<<YAML
@@ -220,7 +221,7 @@ api:
     key: /etc/letsencrypt/live/{$node['fqdn']}/privkey.pem
   upload_limit: {$uploadLimit}
 system:
-  data: /var/lib/pterodactyl/volumes
+  data: {$daemonData}
   sftp:
     bind_port: {$node['daemonSFTP']}
 allowed_mounts: []

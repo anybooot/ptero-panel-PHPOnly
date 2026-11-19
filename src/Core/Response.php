@@ -60,6 +60,21 @@ class Response
         return $this;
     }
 
+    public function getStatusCode(): int
+    {
+        return $this->statusCode;
+    }
+
+    public function getContent(): string
+    {
+        return $this->content;
+    }
+
+    public function getHeaders(): array
+    {
+        return $this->headers;
+    }
+
     public function send(): void
     {
         if (!headers_sent()) {

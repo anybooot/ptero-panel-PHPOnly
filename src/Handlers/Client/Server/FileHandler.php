@@ -52,7 +52,29 @@ class FileHandler
         $directory = (string)$request->input('directory', '/');
 
         try {
-            $files = WingsClient::listDirectory($server['node'], $server['uuid'], $directory);
+            $rawFiles = WingsClient::listDirectory($server['node'], $server['uuid'], $directory);
+            $files = array_map(function ($f) {
+                $item = isset($f['attributes']) && is_array($f['attributes']) ? $f['attributes'] : $f;
+                $isDir = false;
+                if (isset($item['directory'])) {
+                    $isDir = (bool)$item['directory'];
+                } elseif (isset($item['is_directory'])) {
+                    $isDir = (bool)$item['is_directory'];
+                } elseif (isset($item['is_file'])) {
+                    $isDir = !(bool)$item['is_file'];
+                } elseif (isset($item['file'])) {
+                    $isDir = !(bool)$item['file'];
+                } elseif (!empty($item['mode']) && is_string($item['mode'])) {
+                    $isDir = str_starts_with($item['mode'], 'd');
+                } elseif (!empty($item['mimetype'])) {
+                    $isDir = ($item['mimetype'] === 'inode/directory');
+                }
+
+                $item['is_file'] = !$isDir;
+                $item['directory'] = $isDir;
+                return $item;
+            }, is_array($rawFiles) ? $rawFiles : []);
+
             return Response::json(['data' => $files]);
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 500);
@@ -322,6 +344,7 @@ class FileHandler
         );
 
         return Response::json([
+            'url' => $url,
             'object' => 'signed_url',
             'attributes' => ['url' => $url],
         ]);
@@ -361,6 +384,7 @@ class FileHandler
         );
 
         return Response::json([
+            'url' => $url,
             'object' => 'signed_url',
             'attributes' => ['url' => $url],
         ]);

@@ -138,15 +138,17 @@ class Router
 
                 // Execute final handler
                 $handler = $route['handler'];
+                $args = $this->resolveArguments($handler, $req, $params);
+
                 if (is_callable($handler)) {
-                    $res = $handler($req, ...array_values($params));
+                    $res = $handler(...$args);
                 } elseif (is_array($handler)) {
                     [$class, $action] = $handler;
                     $instance = is_string($class) ? new $class() : $class;
-                    $res = $instance->$action($req, ...array_values($params));
+                    $res = $instance->$action(...$args);
                 } elseif (is_string($handler) && class_exists($handler)) {
                     $instance = new $handler();
-                    $res = $instance($req, ...array_values($params));
+                    $res = $instance(...$args);
                 } else {
                     throw new \RuntimeException('Invalid route handler specified.');
                 }
@@ -175,5 +177,70 @@ class Router
         }
 
         return Response::html(ErrorRenderer::render(404, 'The requested page or route could not be found.', 'Page Not Found'), 404);
+    }
+
+    private function resolveArguments(callable|array|string $handler, Request $req, array $params): array
+    {
+        $refMethod = null;
+        try {
+            if (is_array($handler)) {
+                [$class, $action] = $handler;
+                $refMethod = new \ReflectionMethod($class, $action);
+            } elseif (is_string($handler) && class_exists($handler)) {
+                $refMethod = new \ReflectionMethod($handler, '__invoke');
+            } elseif (is_callable($handler)) {
+                $refMethod = new \ReflectionFunction(\Closure::fromCallable($handler));
+            }
+        } catch (\Throwable) {
+            $refMethod = null;
+        }
+
+        if (!$refMethod) {
+            return array_merge([$req], array_values($params));
+        }
+
+        $parameters = $refMethod->getParameters();
+        if (empty($parameters)) {
+            return [];
+        }
+
+        // If the route has 'server' and the method does not explicitly declare a parameter named 'server',
+        // remove 'server' from positional values because the handler retrieves it via $request->getAttribute('server').
+        $methodHasServer = false;
+        foreach ($parameters as $p) {
+            if ($p->getName() === 'server') {
+                $methodHasServer = true;
+                break;
+            }
+        }
+
+        $effectiveParams = $params;
+        if (isset($effectiveParams['server']) && !$methodHasServer) {
+            unset($effectiveParams['server']);
+        }
+
+        $args = [];
+        $positionalValues = array_values($effectiveParams);
+        $valIndex = 0;
+
+        foreach ($parameters as $p) {
+            $name = $p->getName();
+            $type = $p->getType();
+            $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : null;
+
+            if ($typeName === Request::class || $name === 'request' || $name === 'req') {
+                $args[] = $req;
+            } elseif (isset($effectiveParams[$name])) {
+                $args[] = $effectiveParams[$name];
+            } elseif (isset($positionalValues[$valIndex])) {
+                $args[] = $positionalValues[$valIndex++];
+            } elseif ($p->isDefaultValueAvailable()) {
+                $args[] = $p->getDefaultValue();
+            } else {
+                $args[] = null;
+            }
+        }
+
+        return $args;
     }
 }
