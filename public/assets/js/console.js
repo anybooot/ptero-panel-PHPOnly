@@ -32,7 +32,10 @@ class ServerConsole {
         try {
             const saved = sessionStorage.getItem(this.storageKey);
             if (saved) {
-                this.terminalWindow.innerHTML = saved;
+                // Clean out any historical connection info lines
+                const cleaned = saved.replace(/<div[^>]*>.*?Connecting to the node.*?<\/div>/gi, '')
+                                     .replace(/<div[^>]*>.*?Connected to the node.*?<\/div>/gi, '');
+                this.terminalWindow.innerHTML = cleaned;
                 this.terminalWindow.scrollTop = this.terminalWindow.scrollHeight;
             }
         } catch (e) {}
@@ -95,7 +98,6 @@ class ServerConsole {
 
     async connect() {
         try {
-            this.log('Connecting to the node...', 'ansi-dim');
             const data = await App.request(`/api/client/servers/${this.serverUuid}/websocket`);
             this.token = data.data.token;
             this.socketUrl = data.data.socket;
@@ -103,7 +105,6 @@ class ServerConsole {
             this.socket = new WebSocket(this.socketUrl);
 
             this.socket.onopen = () => {
-                this.log('Connected to the node. Authenticating...', 'ansi-dim');
                 this.sendEvent('auth', [this.token]);
             };
 
@@ -112,7 +113,6 @@ class ServerConsole {
             };
 
             this.socket.onclose = () => {
-                this.log('Connection to the node was closed. Reconnecting in 3s...', 'ansi-yellow');
                 clearTimeout(this.reconnectTimer);
                 this.reconnectTimer = setTimeout(() => this.connect(), 3000);
             };
@@ -141,7 +141,6 @@ class ServerConsole {
 
             switch (event) {
                 case 'auth success':
-                    this.log('Connected to the node.', 'ansi-green');
                     this.sendEvent('send logs');
                     this.sendEvent('send stats');
                     break;
@@ -177,32 +176,49 @@ class ServerConsole {
     }
 
     updateStatus(status) {
-        if (!this.statusBadge) return;
-        this.statusBadge.textContent = status || 'offline';
-        this.statusBadge.className = 'badge';
+        if (!status) status = 'offline';
+        if (this.statusBadge) {
+            this.statusBadge.textContent = status;
+            this.statusBadge.className = 'badge';
 
-        if (status === 'running') {
-            this.statusBadge.classList.add('badge-success');
-        } else if (status === 'starting') {
-            this.statusBadge.classList.add('badge-warning');
-        } else if (status === 'stopping') {
-            this.statusBadge.classList.add('badge-danger');
-        } else {
-            this.statusBadge.classList.add('badge-secondary');
+            if (status === 'running') {
+                this.statusBadge.classList.add('badge-success');
+            } else if (status === 'starting') {
+                this.statusBadge.classList.add('badge-warning');
+            } else if (status === 'stopping') {
+                this.statusBadge.classList.add('badge-danger');
+            } else {
+                this.statusBadge.classList.add('badge-secondary');
+            }
         }
 
-        // Also update any header status dots if present
-        const statusDot = document.getElementById('stat-status-dot');
-        if (statusDot) {
-            statusDot.style.backgroundColor = status === 'running' ? '#10b981' : (status === 'starting' ? '#f59e0b' : '#ef4444');
-        }
+        // Also update any status dots if present
+        const statusDots = document.querySelectorAll('#stat-status-dot, .stat-status-dot, .status-pulse-dot');
+        const dotColor = status === 'running' ? '#10b981' : (status === 'starting' ? '#f59e0b' : (status === 'stopping' ? '#ef4444' : '#64748b'));
+        statusDots.forEach(dot => {
+            dot.style.backgroundColor = dotColor;
+        });
+
+        // Notify backend to update database status so server list stays in sync
+        try {
+            App.request(`/api/client/servers/${this.serverUuid}/status`, {
+                method: 'POST',
+                body: { status }
+            }).catch(() => {});
+        } catch (e) {}
     }
 
     appendConsole(text) {
-        if (!this.terminalWindow) return;
-        const line = document.createElement('div');
-        line.innerHTML = this.parseAnsi(text);
-        this.terminalWindow.appendChild(line);
+        if (!this.terminalWindow || text === undefined || text === null) return;
+        const lines = String(text).split(/\r?\n/);
+        for (let i = 0; i < lines.length; i++) {
+            const rawLine = lines[i];
+            if (rawLine === '' && i === lines.length - 1 && lines.length > 1) continue;
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.innerHTML = this.parseAnsiLine(rawLine);
+            this.terminalWindow.appendChild(line);
+        }
 
         if (this.autoScroll) {
             this.terminalWindow.scrollTop = this.terminalWindow.scrollHeight;
@@ -235,10 +251,35 @@ class ServerConsole {
         this.persistBuffer();
     }
 
-    parseAnsi(input) {
-        if (!input) return '';
-        let html = input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    parseAnsiLine(rawLine) {
+        if (!rawLine) return '';
 
+        // 1. Strip carriage returns, leading [m / \x1b[m / stray spaces
+        let line = rawLine.replace(/\r+/g, '');
+        line = line.replace(/^\s*(?:\u001b|\x1b)?\[m\s*/, '');
+        line = line.replace(/(?:\u001b|\x1b)?\[m\s*(?=\[|\b)/g, '');
+        line = line.replace(/[\u001b\x1b](?!\[)/g, '');
+
+        // 2. HTML escape
+        let html = line.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        // 3. Minecraft section sign color codes (§0 - §f, §r, §l, etc.)
+        const mcColorMap = {
+            '0': 'ansi-black', '1': 'ansi-blue', '2': 'ansi-green', '3': 'ansi-cyan',
+            '4': 'ansi-red', '5': 'ansi-magenta', '6': 'ansi-yellow', '7': 'ansi-white',
+            '8': 'ansi-bright-black', '9': 'ansi-bright-blue', 'a': 'ansi-bright-green',
+            'b': 'ansi-bright-cyan', 'c': 'ansi-bright-red', 'd': 'ansi-bright-magenta',
+            'e': 'ansi-bright-yellow', 'f': 'ansi-bright-white', 'l': 'ansi-bold',
+            'o': 'ansi-italic', 'n': 'ansi-underline', 'r': 'reset'
+        };
+        html = html.replace(/§([0-9a-fk-or])/gi, (m, code) => {
+            const c = code.toLowerCase();
+            if (c === 'r') return '</span>';
+            const cls = mcColorMap[c];
+            return cls ? `<span class="${cls}">` : '';
+        });
+
+        // 4. ANSI 16/256-color map
         const colorMap = {
             30: 'ansi-black', 31: 'ansi-red', 32: 'ansi-green', 33: 'ansi-yellow',
             34: 'ansi-blue', 35: 'ansi-magenta', 36: 'ansi-cyan', 37: 'ansi-white',
@@ -249,7 +290,11 @@ class ServerConsole {
             1: 'ansi-bold', 2: 'ansi-dim', 3: 'ansi-italic', 4: 'ansi-underline'
         };
 
-        return html.replace(/\u001b\[([0-9;]+)m/g, (match, codes) => {
+        // Note: * instead of + ensures \u001b[m (empty codes) matches and acts as reset!
+        html = html.replace(/(?:\u001b|\x1b)\[([0-9;]*)m/g, (match, codes) => {
+            if (!codes || codes === '0' || codes === '') {
+                return '</span>';
+            }
             const parts = codes.split(';');
             if (parts.includes('0')) {
                 return '</span>';
@@ -257,6 +302,34 @@ class ServerConsole {
             const classes = parts.map(c => colorMap[c] || '').filter(Boolean).join(' ');
             return classes ? `<span class="${classes}">` : '';
         });
+
+        // 5. Clean up any remaining mangled ANSI artifacts (e.g. stray [0m, [33m)
+        html = html.replace(/(?:^|\s+)\[[0-9;]*m\s*/g, ' ');
+
+        // 6. Intelligent log level styling: if line contains WARN/ERROR or Paper warning banner
+        const plain = html.replace(/<[^>]+>/g, '').trim();
+        const isWarn = /\b(?:WARN|WARNING)\b/i.test(plain) || /^\*{10,}$/.test(plain);
+        const isError = /\b(?:ERROR|FATAL|Exception|Severe)\b/i.test(plain);
+
+        if (isWarn) {
+            if (!html.includes('ansi-yellow') && !html.includes('ansi-bright-yellow')) {
+                html = `<span class="ansi-yellow">${html}</span>`;
+            }
+        } else if (isError) {
+            if (!html.includes('ansi-red') && !html.includes('ansi-bright-red')) {
+                html = `<span class="ansi-red">${html}</span>`;
+            }
+        }
+
+        // 7. Make URLs clickable links
+        html = html.replace(/(https?:\/\/[^\s<"']+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: #cbd5e1; text-decoration: underline;">$1</a>');
+
+        return html;
+    }
+
+    parseAnsi(input) {
+        if (!input) return '';
+        return input.split(/\r?\n/).map(l => this.parseAnsiLine(l)).join('\n');
     }
 
     sendCommand() {

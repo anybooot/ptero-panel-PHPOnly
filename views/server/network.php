@@ -29,7 +29,7 @@
                         <?php $isPrimary = ((int)$a['id']) === ((int)$server['allocation_id']); ?>
                         <tr>
                             <td style="font-family: var(--font-mono); font-weight: 600; color: #fff;"><?= \Pterodactyl\Core\View::e($a['ip']) ?></td>
-                            <td style="font-family: var(--font-mono); color: #60a5fa;"><?= (int)$a['port'] ?></td>
+                            <td style="font-family: var(--font-mono); color: #ffffff; font-weight: 600;"><?= (int)$a['port'] ?></td>
                             <td style="font-family: var(--font-mono); color: var(--text-secondary);"><?= \Pterodactyl\Core\View::e($a['ip_alias'] ?? '-') ?></td>
                             <td><?= \Pterodactyl\Core\View::e($a['notes'] ?? '-') ?></td>
                             <td>

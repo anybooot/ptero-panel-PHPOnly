@@ -21,7 +21,7 @@
 
 <?php if (empty($canCreate)): ?>
     <div class="alert alert-warning" style="margin-bottom: 16px; border-left: 4px solid #f59e0b;">
-        <strong>Limită atinsă:</strong> Ai atins numărul maxim de baze de date permise pentru acest server (<?= (int)$databaseCount ?> / <?= (int)$databaseLimit ?>). Pentru a crea una nouă, șterge o bază de date existentă sau mărește limita din panoul de administrare.
+        <strong>Limit reached:</strong> You have reached the maximum number of databases allowed for this server (<?= (int)$databaseCount ?> / <?= (int)$databaseLimit ?>). To create a new one, delete an existing database or increase the limit in the administration panel.
     </div>
 <?php endif; ?>
 
@@ -61,13 +61,13 @@
                                 <td>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="font-family: var(--font-mono); color: #cbd5e1;"><?= \Pterodactyl\Core\View::e($dbUser) ?></span>
-                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbUser) ?>', 'Username copiat!')" title="Copy Username">📋</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbUser) ?>', 'Username copied!')" title="Copy Username">📋</button>
                                     </div>
                                 </td>
                                 <td>
                                     <div style="display: flex; align-items: center; gap: 6px;">
-                                        <span style="font-family: var(--font-mono); color: #60a5fa;"><?= \Pterodactyl\Core\View::e($dbHost . ':' . $dbPort) ?></span>
-                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbHost . ':' . $dbPort) ?>', 'Endpoint copiat!')" title="Copy Endpoint">📋</button>
+                                        <span style="font-family: var(--font-mono); color: #e5e7eb;"><?= \Pterodactyl\Core\View::e($dbHost . ':' . $dbPort) ?></span>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbHost . ':' . $dbPort) ?>', 'Endpoint copied!')" title="Copy Endpoint">📋</button>
                                     </div>
                                 </td>
                                 <td>
@@ -77,7 +77,7 @@
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span id="pwd-display-<?= $d['id'] ?>" data-hidden="true" data-pwd="<?= \Pterodactyl\Core\View::e($dbPass) ?>" style="font-family: var(--font-mono); background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 4px; color: #eceff4; min-width: 90px; text-align: center;">••••••••</span>
                                         <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 11px;" onclick="togglePasswordView('<?= $d['id'] ?>')" title="Toggle visibility">👁</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbPass) ?>', 'Parolă copiată!')" title="Copy Password">📋</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbPass) ?>', 'Password copied!')" title="Copy Password">📋</button>
                                     </div>
                                 </td>
                                 <td style="text-align: right; white-space: nowrap;">

@@ -10,7 +10,7 @@
 <!-- Stats Grid -->
 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
     <div class="card" style="padding: 20px; text-align: center;">
-        <div style="font-size: 32px; font-weight: 800; color: #3b82f6;"><?= $serversCount ?></div>
+        <div style="font-size: 32px; font-weight: 800; color: #ffffff;"><?= $serversCount ?></div>
         <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-top: 4px;">Total Servers</div>
     </div>
     <div class="card" style="padding: 20px; text-align: center;">

@@ -13,7 +13,7 @@
     <a href="/server/<?= $server['uuidShort'] ?>/settings" class="<?= ($activeTab ?? '') === 'settings' ? 'active' : '' ?>">Settings</a>
     <a href="/server/<?= $server['uuidShort'] ?>/activity" class="<?= ($activeTab ?? '') === 'activity' ? 'active' : '' ?>">Activity</a>
     <?php if (!empty($user['root_admin'])): ?>
-        <a href="/admin/servers/view/<?= $server['id'] ?>" target="_blank" style="color: #60a5fa;" title="View in Admin Panel">↗ Admin</a>
+        <a href="/admin/servers/view/<?= $server['id'] ?>" target="_blank" style="color: #cbd5e1;" title="View in Admin Panel">↗ Admin</a>
     <?php endif; ?>
 </nav>
 <?php $this->end(); ?>

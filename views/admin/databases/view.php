@@ -86,7 +86,7 @@
                                     <td style="font-family: var(--font-mono); font-weight: 600; color: #fff;"><?= \Pterodactyl\Core\View::e($d['database']) ?></td>
                                     <td style="font-family: var(--font-mono);"><?= \Pterodactyl\Core\View::e($d['username']) ?></td>
                                     <td>
-                                        <a href="/admin/servers/view/<?= $d['server_id'] ?>" style="color: #60a5fa;">
+                                        <a href="/admin/servers/view/<?= $d['server_id'] ?>" style="color: #ffffff; font-weight: 600;">
                                             <?= \Pterodactyl\Core\View::e($d['server_name'] ?? 'Server') ?>
                                         </a>
                                     </td>

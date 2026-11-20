@@ -43,7 +43,7 @@
                         <?php foreach ($keys as $k): ?>
                             <tr>
                                 <td>
-                                    <code style="font-family: var(--font-mono); font-size: 12px; color: #60a5fa;">
+                                    <code style="font-family: var(--font-mono); font-size: 12px; color: #ffffff;">
                                         <?= \Pterodactyl\Core\View::e($k['identifier']) ?>
                                     </code>
                                 </td>

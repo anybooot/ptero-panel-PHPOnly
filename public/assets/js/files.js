@@ -59,6 +59,15 @@ class FileManager {
             this.btnBulkDelete.addEventListener('click', () => this.deleteSelected());
         }
 
+        const btnDeselect = document.getElementById('btn-bulk-deselect');
+        if (btnDeselect) {
+            btnDeselect.addEventListener('click', () => {
+                document.querySelectorAll('.file-select-box').forEach(b => b.checked = false);
+                if (this.selectAllCheckbox) this.selectAllCheckbox.checked = false;
+                this.updateBulkToolbar();
+            });
+        }
+
         if (this.renameForm) {
             this.renameForm.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -73,12 +82,20 @@ class FileManager {
             });
         }
 
-        // Close file action dropdowns on outside click
+        // Close file action dropdowns on outside click or window scroll
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.file-actions-dropdown')) {
                 document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
             }
         });
+
+        window.addEventListener('scroll', () => {
+            document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
+        }, { passive: true });
+
+        window.addEventListener('resize', () => {
+            document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
+        }, { passive: true });
     }
 
     bindChmodHelpers() {
@@ -159,8 +176,8 @@ class FileManager {
                         <tr>
                             <td colspan="5" style="text-align: center; padding: 36px 20px;">
                                 <div style="font-size: 32px; margin-bottom: 8px;">🔌</div>
-                                <div style="color: #f87171; font-weight: 700; font-size: 15px; margin-bottom: 4px;">Node-ul nu este disponibil momentan.</div>
-                                <div style="color: var(--text-secondary); font-size: 13px;">Nu s-a putut stabili conexiunea cu daemonul Wings. Vă rugăm să verificați dacă nodul este pornit.</div>
+                                <div style="color: #f87171; font-weight: 700; font-size: 15px; margin-bottom: 4px;">Node is currently unavailable.</div>
+                                <div style="color: var(--text-secondary); font-size: 13px;">Could not establish a connection to the Wings daemon. Please ensure the node is running.</div>
                             </td>
                         </tr>`;
                 } else {
@@ -174,7 +191,7 @@ class FileManager {
         if (!this.breadcrumbs) return;
 
         const parts = this.currentDirectory.split('/').filter(Boolean);
-        let html = `<a href="javascript:void(0)" onclick="window.fileManager.loadDirectory('/')" style="color: #60a5fa; font-weight: 600;">/home/container</a>`;
+        let html = `<a href="javascript:void(0)" onclick="window.fileManager.loadDirectory('/')" style="color: #ffffff; font-weight: 600;">/home/container</a>`;
 
         let cumPath = '';
         parts.forEach((p, idx) => {
@@ -184,7 +201,7 @@ class FileManager {
                 html += ` <span style="color: var(--text-muted);">/</span> <span style="color: #eceff4; font-weight: 600;">${App.escapeHtml(p)}</span>`;
             } else {
                 const targetPath = cumPath;
-                html += ` <span style="color: var(--text-muted);">/</span> <a href="javascript:void(0)" onclick="window.fileManager.loadDirectory('${targetPath}')" style="color: #60a5fa;">${App.escapeHtml(p)}</a>`;
+                html += ` <span style="color: var(--text-muted);">/</span> <a href="javascript:void(0)" onclick="window.fileManager.loadDirectory('${targetPath}')" style="color: #cbd5e1;">${App.escapeHtml(p)}</a>`;
             }
         });
 
@@ -275,12 +292,39 @@ class FileManager {
 
     toggleDropdown(e, dropdownId) {
         e.stopPropagation();
+        const btn = e.currentTarget || e.target.closest('button');
         const menu = document.getElementById(dropdownId);
+        if (!menu) return;
+
         const isShown = menu.style.display === 'block';
 
-        document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
+        // Close all menus first
+        document.querySelectorAll('.file-dropdown-menu').forEach(m => {
+            m.style.display = 'none';
+        });
+
         if (!isShown) {
             menu.style.display = 'block';
+            menu.style.position = 'fixed';
+            menu.style.zIndex = '99999';
+
+            const rect = btn.getBoundingClientRect();
+            const menuWidth = menu.offsetWidth || 150;
+            const menuHeight = menu.offsetHeight || 150;
+
+            let left = rect.right - menuWidth;
+            if (left < 10) left = 10;
+
+            let top = rect.bottom + 4;
+            // If overflowing the bottom of window, flip upwards
+            if (top + menuHeight > window.innerHeight - 10) {
+                top = Math.max(10, rect.top - menuHeight - 4);
+            }
+
+            menu.style.top = `${top}px`;
+            menu.style.left = `${left}px`;
+            menu.style.right = 'auto';
+            menu.style.bottom = 'auto';
         }
     }
 

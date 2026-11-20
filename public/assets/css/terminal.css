@@ -1,10 +1,142 @@
 /**
- * Pterodactyl Panel - Terminal, ANSI Colors & Canvas Stats CSS
+ * Pterodactyl Panel - Terminal, ANSI Colors, Sidebar & Resource CSS
+ * Gray Primary & White Secondary Aesthetic (No Blue)
  */
+
+/* ================= Terminal & Console Layout Grid ================= */
+.console-layout-grid {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    align-items: start;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 1024px) {
+    .console-layout-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}
+
+/* Left Sidebar Container ("chenar stanga") */
+.console-sidebar-panel {
+    background-color: #14151d;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 18px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sidebar-block {
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header-block {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    padding-bottom: 14px;
+}
+
+.sidebar-stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+}
+
+.console-ip-card {
+    background-color: #191b24;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.console-ip-card:hover {
+    background-color: #20222e;
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+.sidebar-stats-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sidebar-stat-item {
+    background-color: #191b24;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+    padding: 10px 14px;
+    transition: border-color 0.15s ease;
+}
+
+.sidebar-stat-item:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.sidebar-stat-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.stat-tag {
+    font-size: 11.5px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: #e2e8f0;
+    letter-spacing: 0.03em;
+}
+
+.stat-value {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.stat-limit {
+    color: var(--text-muted);
+    font-weight: 400;
+    font-size: 11.5px;
+}
+
+/* Power Control Grid */
+.console-power-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.btn-kill {
+    background-color: #7f1d1d !important;
+    border-color: #991b1b !important;
+}
+
+.btn-kill:hover {
+    background-color: #991b1b !important;
+    border-color: #b91c1c !important;
+}
+
+.console-main-panel {
+    min-width: 0;
+}
 
 /* ================= Terminal & Console ================= */
 .terminal-wrapper {
-    background-color: #0e0f14;
+    background-color: #0b0c10;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     overflow: hidden;
@@ -18,34 +150,23 @@
     padding: 16px;
     font-family: var(--font-mono);
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.55;
     color: #eceff4;
     white-space: pre-wrap;
     word-break: break-all;
     user-select: text;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-.terminal-window::-webkit-scrollbar {
-    width: 6px;
-}
-
-.terminal-window::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-radius: 3px;
 }
 
 .terminal-input-bar {
     display: flex;
     align-items: center;
-    background-color: #0b0c10;
+    background-color: #0e0f14;
     border-top: 1px solid var(--border-color);
     padding: 10px 16px;
 }
 
 .terminal-prompt-icon {
-    color: #3b82f6;
+    color: #e5e7eb;
     font-family: var(--font-mono);
     font-weight: 700;
     font-size: 14px;
@@ -69,27 +190,27 @@
 .ansi-red { color: #f87171; }
 .ansi-green { color: #34d399; }
 .ansi-yellow { color: #fbbf24; }
-.ansi-blue { color: #60a5fa; }
+.ansi-blue { color: #cbd5e1; } /* Clean light slate instead of saturated blue */
 .ansi-magenta { color: #c084fc; }
-.ansi-cyan { color: #38bdf8; }
+.ansi-cyan { color: #94a3b8; }
 .ansi-white { color: #f1f5f9; }
 
 .ansi-bright-black { color: #718096; }
 .ansi-bright-red { color: #ef4444; }
 .ansi-bright-green { color: #10b981; }
 .ansi-bright-yellow { color: #f59e0b; }
-.ansi-bright-blue { color: #3b82f6; }
-.ansi-bright-magenta { color: #a855f7; }
-.ansi-bright-cyan { color: #0ea5e9; }
+.ansi-bright-blue { color: #e2e8f0; } /* Crisp light gray */
+.ansi-bright-magenta { color: #d8b4fe; }
+.ansi-bright-cyan { color: #cbd5e1; }
 .ansi-bright-white { color: #ffffff; }
 
 .ansi-bg-black { background-color: #000; }
 .ansi-bg-red { background-color: #7f1d1d; }
 .ansi-bg-green { background-color: #064e3b; }
 .ansi-bg-yellow { background-color: #78350f; }
-.ansi-bg-blue { background-color: #1e3a8a; }
+.ansi-bg-blue { background-color: #334155; }
 .ansi-bg-magenta { background-color: #581c87; }
-.ansi-bg-cyan { background-color: #0c4a6e; }
+.ansi-bg-cyan { background-color: #1e293b; }
 .ansi-bg-white { background-color: #475569; }
 
 .ansi-bold { font-weight: 700; }
@@ -103,7 +224,7 @@
 }
 
 .terminal-system-badge {
-    color: #3b82f6;
+    color: #e5e7eb;
     font-weight: 700;
     margin-right: 6px;
     user-select: none;
@@ -139,7 +260,7 @@
 }
 
 .graph-title {
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 700;
     color: var(--text-secondary);
     text-transform: uppercase;
@@ -149,7 +270,7 @@
 .graph-val {
     font-size: 14px;
     font-weight: 700;
-    color: #fff;
+    color: #ffffff;
     font-family: var(--font-mono);
 }
 

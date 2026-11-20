@@ -154,6 +154,8 @@ class Routes
             // Console, WebSocket & Power
             $r->get('/api/client/servers/{server}/websocket', [Server\ConsoleHandler::class, 'getWebsocketToken']);
             $r->post('/api/client/servers/{server}/power', [Server\PowerHandler::class, 'sendPower']);
+            $r->get('/api/client/servers/{server}/status', [Server\PowerHandler::class, 'getStatus']);
+            $r->post('/api/client/servers/{server}/status', [Server\PowerHandler::class, 'updateStatus']);
             $r->post('/api/client/servers/{server}/command', [Server\CommandHandler::class, 'sendCommand']);
 
             // Files

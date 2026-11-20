@@ -19,9 +19,9 @@ const ServerStats = (() => {
             limits = { ...limits, ...serverLimits };
         }
 
-        setupChart('cpu', 'chart-cpu', '#3b82f6', 'rgba(59, 130, 246, 0.15)');
-        setupChart('ram', 'chart-ram', '#10b981', 'rgba(16, 185, 129, 0.15)');
-        setupChart('net', 'chart-net', '#f59e0b', 'rgba(245, 158, 11, 0.15)');
+        setupChart('cpu', 'chart-cpu', '#e2e8f0', 'rgba(255, 255, 255, 0.12)');
+        setupChart('ram', 'chart-ram', '#cbd5e1', 'rgba(203, 213, 225, 0.12)');
+        setupChart('net', 'chart-net', '#94a3b8', 'rgba(148, 163, 184, 0.12)');
 
         // Handle canvas resize on window resize
         window.addEventListener('resize', () => {

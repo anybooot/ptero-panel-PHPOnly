@@ -15,7 +15,7 @@
 <div class="modal-backdrop" id="modal-delete-node">
     <div class="modal-dialog" style="max-width: 520px;">
         <div class="modal-header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.2);">
-            <h3 class="modal-title" style="color: #f87171;">Ștergere Nod: <?= \Pterodactyl\Core\View::e($node['name']) ?></h3>
+            <h3 class="modal-title" style="color: #f87171;">Delete Node: <?= \Pterodactyl\Core\View::e($node['name']) ?></h3>
             <button class="modal-close" data-modal-close>&times;</button>
         </div>
         <form action="/admin/nodes/view/<?= $node['id'] ?>" method="POST">
@@ -25,25 +25,25 @@
                 <?php $srvCount = (int)($stats['servers_count'] ?? 0); ?>
                 <?php if ($srvCount > 0): ?>
                     <div class="alert alert-danger" style="margin-bottom: 16px; border-left: 4px solid #ef4444;">
-                        <strong>Atenție!</strong> Acest nod are în prezent <strong style="color: #fff;"><?= $srvCount ?> server(e)</strong> create pe el.
+                        <strong>Warning!</strong> This node currently has <strong style="color: #fff;"><?= $srvCount ?> server(s)</strong> created on it.
                     </div>
                     <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px;">
-                        Puteți alege să ștergeți nodul împreună cu toate cele <strong style="color: #fff;"><?= $srvCount ?> server(e)</strong> asociate, sau să anulați pentru a muta serverele mai întâi.
+                        You can choose to delete this node along with all <strong style="color: #fff;"><?= $srvCount ?> associated server(s)</strong>, or cancel to migrate the servers first.
                     </p>
                     <label style="display: flex; align-items: center; gap: 8px; font-weight: 600; color: #f87171; cursor: pointer; background: rgba(239,68,68,0.1); padding: 10px 14px; border-radius: 6px;">
                         <input type="checkbox" name="delete_servers" value="1" required id="confirm-delete-all-srv">
-                        <span>Confirm că doresc să șterg toate cele <?= $srvCount ?> servere și acest nod</span>
+                        <span>I confirm that I want to delete all <?= $srvCount ?> servers and this node</span>
                     </label>
                 <?php else: ?>
                     <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6;">
-                        Sunteți sigur că doriți să ștergeți acest nod? Toate alocările neasociate vor fi șterse definitiv.
+                        Are you sure you want to delete this node? All unallocated IP addresses will be permanently removed.
                     </p>
                 <?php endif; ?>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-modal-close>Anulează</button>
+                <button type="button" class="btn btn-secondary" data-modal-close>Cancel</button>
                 <button type="submit" class="btn btn-danger">
-                    <?= $srvCount > 0 ? "Șterge nodul și cele {$srvCount} servere" : "Șterge Nodul" ?>
+                    <?= $srvCount > 0 ? "Delete Node and all {$srvCount} servers" : "Delete Node" ?>
                 </button>
             </div>
         </form>
@@ -61,7 +61,7 @@
 <!-- Statistics Row -->
 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
     <div class="card" style="padding: 16px; text-align: center;">
-        <div style="font-size: 24px; font-weight: 700; color: #3b82f6;"><?= (int)($stats['servers_count'] ?? 0) ?></div>
+        <div style="font-size: 24px; font-weight: 700; color: #ffffff;"><?= (int)($stats['servers_count'] ?? 0) ?></div>
         <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Total Servers</div>
     </div>
     <div class="card" style="padding: 16px; text-align: center;">

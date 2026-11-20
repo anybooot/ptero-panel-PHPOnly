@@ -22,7 +22,7 @@
     <header class="navbar">
         <div style="display: flex; align-items: center; gap: 24px;">
             <a href="/" class="navbar-brand">
-                <span style="color: #3b82f6;">▲</span> <?= \Pterodactyl\Core\View::e($appName ?? 'Pterodactyl') ?>
+                <span style="color: #e5e7eb;">▲</span> <?= \Pterodactyl\Core\View::e($appName ?? 'Pterodactyl') ?>
             </a>
             <?php if (!empty($user)): ?>
                 <nav class="navbar-links">

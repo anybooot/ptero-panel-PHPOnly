@@ -43,7 +43,7 @@ class ErrorRenderer
 
         $color = match ($code) {
             403, 401 => '#f59e0b', // Amber
-            404 => '#3b82f6',      // Blue
+            404 => '#9ca3af',      // Slate / Gray
             419 => '#8b5cf6',      // Purple
             default => '#ef4444',  // Red
         };
@@ -64,7 +64,7 @@ class ErrorRenderer
                     in {$exFile}
                 </div>
                 <details style="color: #64748b; font-family: monospace; font-size: 11px;">
-                    <summary style="cursor: pointer; color: #3b82f6; font-weight: 600; margin-bottom: 8px;">View Stack Trace</summary>
+                    <summary style="cursor: pointer; color: #cbd5e1; font-weight: 600; margin-bottom: 8px;">View Stack Trace</summary>
                     <pre style="margin: 0; white-space: pre-wrap; line-height: 1.5; color: #94a3b8;">{$exTrace}</pre>
                 </details>
             </div>
@@ -141,11 +141,11 @@ HTML;
             font-family: inherit;
         }
         .btn-primary {
-            background: #2563eb;
-            color: #fff;
+            background: #f3f4f6;
+            color: #0f1014;
         }
         .btn-primary:hover {
-            background: #1d4ed8;
+            background: #ffffff;
         }
         .btn-secondary {
             background: #1f2937;
@@ -161,7 +161,7 @@ HTML;
 <body>
     <div class="error-card">
         <div style="font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 24px;">
-            <span style="color: #3b82f6;">▲</span> {$safeAppName}
+            <span style="color: #e5e7eb;">▲</span> {$safeAppName}
         </div>
         <div class="error-code">{$code}</div>
         <h1 class="error-title">{$safeTitle}</h1>

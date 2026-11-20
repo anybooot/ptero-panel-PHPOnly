@@ -37,6 +37,20 @@ class PowerHandler
         try {
             WingsClient::sendPowerAction($server['node'], $server['uuid'], $action);
 
+            // Update database status immediately
+            $newStatus = match ($action) {
+                'start', 'restart' => 'starting',
+                'stop' => 'stopping',
+                'kill' => 'offline',
+                default => null,
+            };
+            if ($newStatus) {
+                Database::execute(
+                    "UPDATE `servers` SET `status` = :st WHERE `id` = :id AND (`status` IS NULL OR `status` NOT IN ('suspended', 'installing', 'restoring_backup'))",
+                    ['st' => $newStatus, 'id' => $server['id']]
+                );
+            }
+
             \Pterodactyl\Core\ActivityLogger::log(
                 "server:power.{$action}",
                 $user,
@@ -49,5 +63,28 @@ class PowerHandler
         } catch (\Throwable $e) {
             return Response::json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public function updateStatus(Request $request): Response
+    {
+        $server = $request->getAttribute('server');
+        $status = trim((string)$request->input('status', ''));
+        if (!in_array($status, ['running', 'starting', 'stopping', 'offline'], true)) {
+            return Response::json(['error' => 'Invalid status specified.'], 400);
+        }
+
+        Database::execute(
+            "UPDATE `servers` SET `status` = :st WHERE `id` = :id AND (`status` IS NULL OR `status` NOT IN ('suspended', 'installing', 'restoring_backup'))",
+            ['st' => $status, 'id' => $server['id']]
+        );
+
+        return Response::json(['status' => $status]);
+    }
+
+    public function getStatus(Request $request): Response
+    {
+        $server = $request->getAttribute('server');
+        $row = Database::queryOne("SELECT `status` FROM `servers` WHERE `id` = :id", ['id' => $server['id']]);
+        return Response::json(['status' => $row['status'] ?: 'offline']);
     }
 }

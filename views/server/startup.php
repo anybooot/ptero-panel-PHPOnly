@@ -11,7 +11,7 @@
 <div class="card" style="margin-bottom: 24px;">
     <div class="card-header">Startup Command Preview</div>
     <div class="card-body">
-        <div style="background-color: #0b0f15; padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-family: var(--font-mono); font-size: 13px; color: #60a5fa; word-break: break-all;">
+        <div style="background-color: #0b0f15; padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-family: var(--font-mono); font-size: 13px; color: #eceff4; word-break: break-all;">
             <?= \Pterodactyl\Core\View::e($commandPreview) ?>
         </div>
     </div>

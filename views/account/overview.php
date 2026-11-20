@@ -95,7 +95,7 @@
         <div class="modal-body">
             <p style="color: var(--text-secondary); margin-bottom: 16px;">Scan the QR code below or manually enter the key into your authenticator app, then enter the 6-digit verification code.</p>
             <div style="text-align: center; margin-bottom: 16px;">
-                <div id="2fa-secret-display" style="font-family: var(--font-mono); font-size: 18px; font-weight: bold; color: #60a5fa; letter-spacing: 0.1em; background: rgba(0,0,0,0.3); padding: 10px; border-radius: var(--radius-sm);"></div>
+                <div id="2fa-secret-display" style="font-family: var(--font-mono); font-size: 18px; font-weight: bold; color: #ffffff; letter-spacing: 0.1em; background: rgba(0,0,0,0.3); padding: 10px; border-radius: var(--radius-sm);"></div>
             </div>
             <div class="form-group">
                 <label class="form-label" for="2fa-verify-code">6-Digit Code</label>

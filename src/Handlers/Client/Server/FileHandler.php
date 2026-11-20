@@ -79,7 +79,7 @@ class FileHandler
         } catch (\Throwable $e) {
             $msg = $e->getMessage();
             if (str_contains($msg, 'Wings Daemon connection failed') || str_contains($msg, 'Connection timed out') || str_contains($msg, 'Failed to connect') || str_contains($msg, 'cURL error')) {
-                $msg = 'Node-ul nu este disponibil momentan.';
+                $msg = 'The node is currently unavailable. Please ensure Wings is running.';
             }
             return Response::json(['error' => $msg], 500);
         }

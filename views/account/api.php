@@ -37,7 +37,7 @@
                     <?php else: ?>
                         <?php foreach ($keys as $k): ?>
                             <tr>
-                                <td style="font-family: var(--font-mono); font-weight: 600; color: #60a5fa;"><?= \Pterodactyl\Core\View::e($k['identifier']) ?></td>
+                                <td style="font-family: var(--font-mono); font-weight: 600; color: #ffffff;"><?= \Pterodactyl\Core\View::e($k['identifier']) ?></td>
                                 <td><?= \Pterodactyl\Core\View::e($k['memo']) ?></td>
                                 <td style="font-family: var(--font-mono); font-size: 12px;"><?= $k['allowed_ips'] ? \Pterodactyl\Core\View::e(implode(', ', json_decode($k['allowed_ips'], true) ?: [])) : '<span style="color:var(--text-muted)">Any</span>' ?></td>
                                 <td><?= $k['last_used_at'] ? date('M j, Y H:i', strtotime($k['last_used_at'])) : '<span style="color:var(--text-muted)">Never</span>' ?></td>

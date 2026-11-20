@@ -15,29 +15,31 @@
     </div>
 </div>
 
-<!-- Bulk Actions Toolbar (visible when files are selected) -->
-<div id="files-bulk-actions" style="display: none; align-items: center; justify-content: space-between; background: #161820; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 18px; margin-bottom: 14px;">
+<!-- Floating Bulk Actions Toolbar (fixed bottom center, over everything) -->
+<div id="files-bulk-actions" class="floating-bulk-bar" style="display: none;">
     <div style="display: flex; align-items: center; gap: 10px;">
-        <span style="font-weight: 600; color: #eceff4;" id="selected-files-count">0 items selected</span>
+        <span class="bulk-counter-pill" id="selected-files-count">0 items selected</span>
+        <button type="button" id="btn-bulk-deselect" class="btn btn-secondary btn-sm" style="padding: 3px 8px; font-size: 11px;">Deselect</button>
     </div>
+    <div style="height: 18px; width: 1px; background: rgba(255,255,255,0.12); margin: 0 4px;"></div>
     <div style="display: flex; gap: 8px;">
         <button id="btn-bulk-archive" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;">
-            <span>📦</span> Archive (.tar.gz)
+            <span>📦</span> Archive
         </button>
         <button id="btn-bulk-delete" class="btn btn-danger btn-sm" style="display: flex; align-items: center; gap: 6px;">
-            <span>🗑</span> Delete Selected
+            <span>🗑</span> Delete
         </button>
     </div>
 </div>
 
 <!-- Upload Progress Bar (hidden by default) -->
 <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.05); margin-bottom: 12px; border-radius: 2px; overflow: hidden;">
-    <div id="upload-progress-bar" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.2s ease;"></div>
+    <div id="upload-progress-bar" style="width: 0%; height: 100%; background: #e5e7eb; transition: width 0.2s ease;"></div>
 </div>
 
-<div class="card">
-    <div class="card-body" style="padding: 0;">
-        <div class="table-responsive">
+<div class="card" style="position: relative; overflow: visible;">
+    <div class="card-body" style="padding: 0; overflow: visible;">
+        <div class="table-responsive" style="overflow-x: auto; overflow-y: visible; min-height: 220px;">
             <table class="table">
                 <thead>
                     <tr>
@@ -152,12 +154,12 @@
     <div class="modal-dialog" style="max-width: 520px; text-align: center; padding: 32px 24px;">
         <div style="font-size: 42px; margin-bottom: 12px; animation: bounce 1.5s infinite;">📤</div>
         <h3 style="color: #eceff4; font-size: 20px; font-weight: 700; margin-bottom: 6px;">Uploading File(s)</h3>
-        <p id="upload-modal-filename" style="font-family: var(--font-mono); font-size: 14px; color: #60a5fa; margin-bottom: 4px; word-break: break-all;">filename.zip</p>
+        <p id="upload-modal-filename" style="font-family: var(--font-mono); font-size: 14px; color: #ffffff; margin-bottom: 4px; word-break: break-all;">filename.zip</p>
         <p id="upload-modal-size" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">0 MB / 0 MB</p>
 
         <!-- Big Progress Bar -->
         <div style="width: 100%; height: 18px; background: rgba(255,255,255,0.06); border-radius: 9px; overflow: hidden; position: relative; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.08);">
-            <div id="upload-modal-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); transition: width 0.15s ease;"></div>
+            <div id="upload-modal-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #9ca3af, #ffffff); transition: width 0.15s ease;"></div>
         </div>
         <div id="upload-modal-percent" style="font-weight: 700; font-size: 15px; color: #eceff4;">0%</div>
         <div id="upload-modal-status" style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">Uploading directly to Wings node...</div>

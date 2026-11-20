@@ -43,7 +43,7 @@
                             <?php
                                 $props = json_decode((string)($l['properties'] ?? ''), true) ?: [];
                                 $event = (string)$l['event'];
-                                $badgeColor = '#3b82f6';
+                                $badgeColor = '#cbd5e1';
                                 if (str_starts_with($event, 'auth:login') || str_contains($event, 'create')) {
                                     $badgeColor = '#10b981';
                                 } elseif (str_contains($event, 'delete') || str_contains($event, 'kill') || str_starts_with($event, 'auth:logout')) {
@@ -81,7 +81,7 @@
                                 </td>
                                 <td>
                                     <?php if (!empty($l['server_name'])): ?>
-                                        <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); margin-right: 6px; font-size: 11px; padding: 2px 6px; border-radius: 4px;">
+                                        <span class="badge" style="background: rgba(255, 255, 255, 0.1); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.15); margin-right: 6px; font-size: 11px; padding: 2px 6px; border-radius: 4px;">
                                             <?= \Pterodactyl\Core\View::e($l['server_name']) ?>
                                         </span>
                                     <?php endif; ?>

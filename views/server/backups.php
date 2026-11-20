@@ -2,13 +2,28 @@
 
 <div class="page-header" style="margin-bottom: 16px;">
     <div>
-        <h1 class="page-title">Backups</h1>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <h1 class="page-title">Backups</h1>
+            <span class="badge <?= empty($canCreate) ? 'badge-danger' : 'badge-secondary' ?>" style="font-family: var(--font-mono); font-size: 12px;">
+                <?= (int)$backupCount ?> / <?= (int)$backupLimit > 0 ? (int)$backupLimit : 'Unlimited' ?>
+            </span>
+        </div>
         <p class="page-subtitle">Create and restore snapshots of your server data</p>
     </div>
     <div>
-        <button class="btn btn-primary btn-sm" onclick="App.openModal('modal-create-backup')">Create Backup</button>
+        <?php if (!empty($canCreate)): ?>
+            <button class="btn btn-primary btn-sm" onclick="App.openModal('modal-create-backup')">Create Backup</button>
+        <?php else: ?>
+            <button class="btn btn-secondary btn-sm" disabled title="Backup limit reached">Limit Reached</button>
+        <?php endif; ?>
     </div>
 </div>
+
+<?php if (empty($canCreate)): ?>
+    <div class="alert alert-warning" style="margin-bottom: 16px; border-left: 4px solid #f59e0b;">
+        <strong>Limit reached:</strong> You have reached the maximum number of backups allowed for this server (<?= (int)$backupCount ?> / <?= (int)$backupLimit ?>). To create a new one, delete an existing backup or increase the limit in the administration panel.
+    </div>
+<?php endif; ?>
 
 <div class="card">
     <div class="card-body" style="padding: 0;">
@@ -135,7 +150,9 @@ async function toggleLock(uuid) {
         await App.request(`/api/client/servers/<?= $server['uuid'] ?>/backups/${uuid}/lock`, { method: 'POST' });
         App.toast('Lock state updated.', 'success');
         setTimeout(() => window.location.reload(), 600);
-    } catch (e) {}
+    } catch (e) {
+        App.toast('Failed to update lock: ' + e.message, 'danger');
+    }
 }
 
 async function restoreBackup(uuid) {
@@ -147,7 +164,9 @@ async function restoreBackup(uuid) {
         });
         App.toast('Restoration started on Wings.', 'success');
         setTimeout(() => window.location.reload(), 1000);
-    } catch (e) {}
+    } catch (e) {
+        App.toast('Restoration failed: ' + e.message, 'danger');
+    }
 }
 
 async function deleteBackup(uuid) {
@@ -156,6 +175,8 @@ async function deleteBackup(uuid) {
         await App.request(`/api/client/servers/<?= $server['uuid'] ?>/backups/${uuid}`, { method: 'DELETE' });
         App.toast('Backup deleted.', 'success');
         setTimeout(() => window.location.reload(), 600);
-    } catch (e) {}
+    } catch (e) {
+        App.toast('Failed to delete backup: ' + e.message, 'danger');
+    }
 }
 </script>

@@ -53,7 +53,7 @@
                                     <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);"><?= \Pterodactyl\Core\View::e($s['uuidShort']) ?></div>
                                 </td>
                                 <td>
-                                    <a href="/admin/users/view/<?= $s['owner_id'] ?>" style="color: #60a5fa;">
+                                    <a href="/admin/users/view/<?= $s['owner_id'] ?>" style="color: #ffffff; font-weight: 600;">
                                         <?= \Pterodactyl\Core\View::e($s['owner_username']) ?>
                                     </a>
                                 </td>

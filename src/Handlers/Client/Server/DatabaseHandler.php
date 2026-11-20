@@ -87,7 +87,7 @@ class DatabaseHandler
         $currentCount = (int)($countRow['count'] ?? 0);
 
         if ($limit >= 0 && $currentCount >= $limit) {
-            return Response::json(['error' => "Ați atins limita maximă de baze de date create pentru acest server ({$currentCount}/{$limit})."], 400);
+            return Response::json(['error' => "You have reached the maximum limit of databases allowed for this server ({$currentCount}/{$limit})."], 400);
         }
 
         $databaseName = trim((string)$request->input('database', ''));

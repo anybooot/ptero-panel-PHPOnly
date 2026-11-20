@@ -34,8 +34,12 @@ class BackupHandler
             ['server_id' => $server['id']]
         );
 
+        $backupLimit = $server['backup_limit'] !== null ? (int)$server['backup_limit'] : 0;
+        $backupCount = count($backups);
+        $canCreate = ($backupLimit < 0 || $server['backup_limit'] === null || $backupCount < $backupLimit);
+
         if ($request->isJson()) {
-            return Response::json(['data' => $backups]);
+            return Response::json(['data' => $backups, 'meta' => ['limit' => $backupLimit, 'count' => $backupCount]]);
         }
 
         $html = View::render('server.backups', [
@@ -43,6 +47,9 @@ class BackupHandler
             'node' => $server['node'],
             'user' => $user,
             'backups' => $backups,
+            'backupLimit' => $backupLimit,
+            'backupCount' => $backupCount,
+            'canCreate' => $canCreate,
             'activeTab' => 'backups',
         ]);
 
@@ -58,10 +65,11 @@ class BackupHandler
             return Response::json(['error' => 'You do not have permission to create backups.'], 403);
         }
 
-        $backupLimit = $server['backup_limit'] ?? 0;
+        $backupLimit = $server['backup_limit'] !== null ? (int)$server['backup_limit'] : 0;
         $countRow = Database::queryOne("SELECT COUNT(*) as count FROM `backups` WHERE `server_id` = :id", ['id' => $server['id']]);
-        if ($backupLimit !== null && (int)$backupLimit >= 0 && ($countRow['count'] ?? 0) >= (int)$backupLimit) {
-            return Response::json(['error' => 'The backup limit for this server has been reached.'], 400);
+        $currentCount = (int)($countRow['count'] ?? 0);
+        if ($backupLimit >= 0 && $server['backup_limit'] !== null && $currentCount >= $backupLimit) {
+            return Response::json(['error' => "You have reached the maximum limit of backups allowed for this server ({$currentCount}/{$backupLimit})."], 400);
         }
 
         $name = trim((string)$request->input('name', ''));

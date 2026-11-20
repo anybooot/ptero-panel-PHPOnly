@@ -49,7 +49,7 @@
                 $cpuStr = $cpuVal > 0 ? $cpuVal . '%' : 'Unlimited';
                 $description = trim((string)($srv['description'] ?? ''));
             ?>
-            <a href="/server/<?= $srv['uuidShort'] ?>" class="server-card-modern">
+            <a href="/server/<?= $srv['uuidShort'] ?>" class="server-card-modern" data-server-card="true" data-server-uuid="<?= $srv['uuid'] ?>" data-server-short="<?= $srv['uuidShort'] ?>">
                 <!-- Header with Server Name & Status -->
                 <div class="server-card-top">
                     <div style="display: flex; align-items: flex-start; gap: 14px; min-width: 0;">
@@ -66,8 +66,8 @@
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-                        <span class="status-pulse-dot" style="background-color: <?= $statusDotColor ?>;"></span>
-                        <span class="badge <?= $badgeClass ?>" style="font-size: 11px; font-weight: 700; text-transform: uppercase;">
+                        <span class="status-pulse-dot" id="dot-<?= $srv['uuidShort'] ?>" style="background-color: <?= $statusDotColor ?>;"></span>
+                        <span class="badge <?= $badgeClass ?>" id="badge-<?= $srv['uuidShort'] ?>" style="font-size: 11px; font-weight: 700; text-transform: uppercase;">
                             <?= \Pterodactyl\Core\View::e($status) ?>
                         </span>
                     </div>
@@ -102,4 +102,90 @@
             </a>
         <?php endforeach; ?>
     </div>
+
+    <!-- Live Server Status Verifier Script -->
+    <script>
+    (function() {
+        const updateCardStatus = (shortId, status) => {
+            const badge = document.getElementById(`badge-${shortId}`);
+            const dot = document.getElementById(`dot-${shortId}`);
+            if (!badge || !dot) return;
+
+            badge.textContent = status;
+            badge.className = 'badge';
+            if (status === 'running') {
+                badge.classList.add('badge-success');
+                dot.style.backgroundColor = '#10b981';
+            } else if (status === 'starting') {
+                badge.classList.add('badge-warning');
+                dot.style.backgroundColor = '#f59e0b';
+            } else if (status === 'stopping') {
+                badge.classList.add('badge-danger');
+                dot.style.backgroundColor = '#ef4444';
+            } else {
+                badge.classList.add('badge-secondary');
+                dot.style.backgroundColor = '#64748b';
+            }
+        };
+
+        const verifyServerStatus = async (card) => {
+            const uuid = card.getAttribute('data-server-uuid');
+            const shortId = card.getAttribute('data-server-short');
+            if (!uuid || !shortId) return;
+
+            try {
+                const res = await App.request(`/api/client/servers/${uuid}/websocket`);
+                if (!res || !res.data || !res.data.socket) return;
+
+                const ws = new WebSocket(res.data.socket);
+                let receivedStatus = false;
+
+                const timeout = setTimeout(() => {
+                    if (!receivedStatus) {
+                        try { ws.close(); } catch(e) {}
+                    }
+                }, 4000);
+
+                ws.onopen = () => {
+                    ws.send(JSON.stringify({ event: 'auth', args: [res.data.token] }));
+                };
+
+                ws.onmessage = (e) => {
+                    try {
+                        const msg = JSON.parse(e.data);
+                        if (msg.event === 'status') {
+                            receivedStatus = true;
+                            clearTimeout(timeout);
+                            const st = msg.args[0] || 'offline';
+                            updateCardStatus(shortId, st);
+                            App.request(`/api/client/servers/${uuid}/status`, {
+                                method: 'POST',
+                                body: { status: st }
+                            }).catch(() => {});
+                            ws.close();
+                        }
+                    } catch(err) {}
+                };
+
+                ws.onerror = () => {
+                    clearTimeout(timeout);
+                };
+            } catch (err) {
+                // If node is unreachable, status remains offline
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const cards = document.querySelectorAll('[data-server-card="true"]');
+            cards.forEach(c => verifyServerStatus(c));
+
+            // Periodic refresh every 30 seconds
+            setInterval(() => {
+                if (!document.hidden) {
+                    cards.forEach(c => verifyServerStatus(c));
+                }
+            }, 30000);
+        });
+    })();
+    </script>
 <?php endif; ?>

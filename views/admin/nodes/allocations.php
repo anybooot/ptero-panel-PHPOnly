@@ -46,7 +46,7 @@
                                 <td><?= (int)$a['id'] ?></td>
                                 <td style="font-family: var(--font-mono); font-weight: 600; color: #fff;"><?= \Pterodactyl\Core\View::e($a['ip']) ?></td>
                                 <td><?= \Pterodactyl\Core\View::e($a['ip_alias'] ?? '-') ?></td>
-                                <td style="font-family: var(--font-mono); color: #60a5fa;"><?= (int)$a['port'] ?></td>
+                                <td style="font-family: var(--font-mono); color: #ffffff;"><?= (int)$a['port'] ?></td>
                                 <td>
                                     <?php if (!empty($a['server_id'])): ?>
                                         <a href="/admin/servers/view/<?= $a['server_id'] ?>" style="color: #10b981; font-weight: 600;">

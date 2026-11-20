@@ -434,7 +434,7 @@ YAML;
         if ($serverCount > 0) {
             $deleteServers = $request->input('delete_servers') === '1' || $request->input('delete_servers') === 1;
             if (!$deleteServers) {
-                Session::flash('error', "Acest nod are {$serverCount} servere create pe el. Confirmați ștergerea tuturor serverelor pentru a continua.");
+                Session::flash('error', "This node currently has {$serverCount} server(s) created on it. Please confirm deletion of all servers to proceed.");
                 return Response::redirect("/admin/nodes/view/{$id}");
             }
 
@@ -455,8 +455,8 @@ YAML;
         Database::execute("DELETE FROM `nodes` WHERE `id` = :id", ['id' => $id]);
 
         Session::flash('success', $serverCount > 0
-            ? "Nodul și toate cele {$serverCount} server(e) asociate au fost șterse cu succes."
-            : "Nodul a fost șters cu succes.");
+            ? "Node and all {$serverCount} associated server(s) were successfully deleted."
+            : "Node was successfully deleted.");
         return Response::redirect('/admin/nodes');
     }
 }

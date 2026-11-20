@@ -32,7 +32,7 @@
     <div class="checkpoint-box">
         <div style="text-align: center; margin-bottom: 24px;">
             <div style="font-size: 32px; font-weight: 800; color: #fff;">
-                <span style="color: #3b82f6;">▲</span> Two-Factor Checkpoint
+                <span style="color: #e5e7eb;">▲</span> Two-Factor Checkpoint
             </div>
             <p style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">Enter the 6-digit code from your authenticator app</p>
         </div>
