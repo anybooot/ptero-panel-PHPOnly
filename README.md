@@ -136,11 +136,11 @@ Example:
 ```env
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=nume_baza_de_date
-DB_USERNAME=utilizator_mysql
-DB_PASSWORD=parola_secreta
+DB_DATABASE=database_name
+DB_USERNAME=database_user
+DB_PASSWORD=database_password
 
-APP_URL=https://domeniul-tau.ro
+APP_URL=https://your-domain.ro
 ```
 
 Replace the example values with your actual database credentials and domain.
