@@ -57,6 +57,17 @@ class ConsoleHandler
         }
 
         $node = $server['node'];
+        if (!WingsClient::isNodeReachable($node)) {
+            return Response::json([
+                'error' => 'Unable to reach the node.',
+                'reachable' => false,
+                'data' => [
+                    'token' => '',
+                    'socket' => '',
+                ],
+            ], 200);
+        }
+
         $permissions = Gate::getServerPermissions($user, $server);
 
         $jwt = new JwtService();

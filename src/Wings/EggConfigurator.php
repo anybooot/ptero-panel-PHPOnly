@@ -33,18 +33,13 @@ class EggConfigurator
         ];
 
         // Parse stop configuration
-        $stopRaw = (string)($egg['config_stop'] ?? $egg['inherit_config_stop'] ?? 'stop');
-        if (str_starts_with($stopRaw, '^')) {
-            $stop = [
-                'type' => 'signal',
-                'value' => strtoupper(substr($stopRaw, 1)),
-            ];
-        } else {
-            $stop = [
-                'type' => 'command',
-                'value' => $stopRaw,
-            ];
-        }
+        // Requirement 4: Power actions (stop/restart) must not write commands to the console/stdin.
+        // Instead, use container signals (SIGINT) sent directly from the node so that servers
+        // (regardless of whether they run Paper, Velocity, etc.) shut down cleanly via JVM shutdown hooks.
+        $stop = [
+            'type' => 'signal',
+            'value' => 'SIGINT',
+        ];
 
         // Parse and replace config files
         $filesContent = $egg['config_files'] ?? $egg['inherit_config_files'] ?? '';

@@ -47,7 +47,7 @@
             <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 13px;">
                 Re-executes the egg installation script on the host node. Overwrites modified core files.
             </p>
-            <form action="/admin/servers/view/<?= $server['id'] ?>/manage/reinstall" method="POST" onsubmit="return confirm('Are you sure you want to trigger a reinstallation?');">
+            <form action="/admin/servers/view/<?= $server['id'] ?>/manage/reinstall" method="POST" data-confirm="Are you sure you want to trigger a reinstallation?">
                 <?= \Pterodactyl\Core\View::csrf() ?>
                 <button type="submit" class="btn btn-secondary">Trigger Reinstallation</button>
             </form>
@@ -81,7 +81,7 @@
                 This will delete the server files from Wings, detach allocations, and erase all related database records. This cannot be undone.
             </p>
         </div>
-        <form action="/admin/servers/view/<?= $server['id'] ?>/delete" method="POST" onsubmit="return confirm('ARE YOU ABSOLUTELY SURE? All data, files, and backups for this server will be permanently deleted.');">
+        <form action="/admin/servers/view/<?= $server['id'] ?>/delete" method="POST" data-confirm="ARE YOU ABSOLUTELY SURE? All data, files, and backups for this server will be permanently deleted.">
             <?= \Pterodactyl\Core\View::csrf() ?>
             <input type="hidden" name="_method" value="DELETE">
             <button type="submit" class="btn btn-danger">Delete Server</button>

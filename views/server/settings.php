@@ -21,14 +21,14 @@
                 <label class="form-label">Server Address</label>
                 <div style="display: flex; gap: 6px;">
                     <input type="text" id="sftp-address-val" class="form-control" style="font-family: var(--font-mono);" value="sftp://<?= \Pterodactyl\Core\View::e($node['fqdn'] . ':' . $sftpPort) ?>" readonly>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('sftp-address-val').value); App.toast('SFTP address copied!', 'success');" title="Copy Address">📋</button>
+                    <button type="button" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 10px;" onclick="App.copyToClipboard(document.getElementById('sftp-address-val').value, this);" data-tooltip="Copy Address"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                 </div>
             </div>
             <div class="form-group">
                 <label class="form-label">Username</label>
                 <div style="display: flex; gap: 6px;">
                     <input type="text" id="sftp-user-val" class="form-control" style="font-family: var(--font-mono);" value="<?= \Pterodactyl\Core\View::e($sftpUsername) ?>" readonly>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('sftp-user-val').value); App.toast('Username copied!', 'success');" title="Copy Username">📋</button>
+                    <button type="button" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 10px;" onclick="App.copyToClipboard(document.getElementById('sftp-user-val').value, this);" data-tooltip="Copy Username"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                 </div>
             </div>
             <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 0;">
@@ -93,7 +93,7 @@ document.getElementById('rename-server-form').addEventListener('submit', async (
 });
 
 async function reinstallServer() {
-    if (!confirm('Are you sure you want to reinstall this server? This will stop the server and run the installation script again.')) return;
+    if (!await App.confirm('Are you sure you want to reinstall this server? This will stop the server and run the installation script again.')) return;
     try {
         await App.request('/api/client/servers/<?= $server['uuid'] ?>/settings/reinstall', { method: 'POST' });
         App.toast('Reinstallation initiated.', 'success');

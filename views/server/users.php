@@ -245,7 +245,7 @@ document.getElementById('add-subuser-form').addEventListener('submit', async (e)
 });
 
 async function deleteSubuser(id) {
-    if (!confirm('Are you sure you want to remove this subuser from the server?')) return;
+    if (!await App.confirm('Are you sure you want to remove this subuser from the server?')) return;
     try {
         await App.request(`/api/client/servers/<?= $server['uuid'] ?>/users/${id}`, { method: 'DELETE' });
         App.toast('Subuser removed.', 'success');

@@ -44,6 +44,12 @@
                 </div>
             <?php endif; ?>
 
+            <?php if (!empty($success)): ?>
+                <div class="alert alert-success" style="margin-bottom: 20px;">
+                    <?= \Pterodactyl\Core\View::e($success) ?>
+                </div>
+            <?php endif; ?>
+
             <form action="/auth/login" method="POST">
                 <?= \Pterodactyl\Core\View::csrf() ?>
 
@@ -53,7 +59,12 @@
                 </div>
 
                 <div class="form-group" style="margin-bottom: 24px;">
-                    <label class="form-label" for="password">Password</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label class="form-label" for="password" style="margin-bottom: 0;">Password</label>
+                        <a href="/auth/password" style="color: var(--text-secondary); font-size: 12px; text-decoration: none;">
+                            Forgot your password?
+                        </a>
+                    </div>
                     <input type="password" id="password" name="password" class="form-control" required autocomplete="current-password">
                 </div>
 
@@ -61,6 +72,15 @@
                     Log In
                 </button>
             </form>
+
+            <?php if (!empty($registrationEnabled)): ?>
+                <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center;">
+                    <span style="color: var(--text-secondary); font-size: 13px;">Don't have an account?</span>
+                    <a href="/auth/register" class="btn btn-secondary" style="display: block; width: 100%; margin-top: 10px; padding: 9px; font-size: 13.5px; text-align: center; text-decoration: none;">
+                        Create an Account
+                    </a>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </body>

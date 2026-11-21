@@ -8,7 +8,12 @@
 </div>
 
 <div class="card">
-    <div class="card-header">Activity History</div>
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>Activity History</span>
+        <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">
+            Showing <?= count($logs) ?> of <?= (int)($total ?? count($logs)) ?> entries (Page <?= (int)($page ?? 1) ?> of <?= (int)($totalPages ?? 1) ?>)
+        </span>
+    </div>
     <div class="card-body" style="padding: 0;">
         <div class="table-responsive">
             <table class="table">
@@ -49,4 +54,26 @@
             </table>
         </div>
     </div>
+    <?php if (($totalPages ?? 1) > 1): ?>
+        <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px;">
+            <div style="font-size: 13px; color: var(--text-secondary);">
+                Page <strong><?= (int)$page ?></strong> of <strong><?= (int)$totalPages ?></strong>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <?php if ($page > 1): ?>
+                    <a href="/server/<?= $server['uuidShort'] ?>/activity?page=1" class="btn btn-secondary btn-sm" title="First Page">&laquo;</a>
+                    <a href="/server/<?= $server['uuidShort'] ?>/activity?page=<?= $page - 1 ?>" class="btn btn-secondary btn-sm">&larr; Previous</a>
+                <?php else: ?>
+                    <button class="btn btn-secondary btn-sm" disabled>&larr; Previous</button>
+                <?php endif; ?>
+
+                <?php if ($page < $totalPages): ?>
+                    <a href="/server/<?= $server['uuidShort'] ?>/activity?page=<?= $page + 1 ?>" class="btn btn-secondary btn-sm">Next &rarr;</a>
+                    <a href="/server/<?= $server['uuidShort'] ?>/activity?page=<?= $totalPages ?>" class="btn btn-secondary btn-sm" title="Last Page">&raquo;</a>
+                <?php else: ?>
+                    <button class="btn btn-secondary btn-sm" disabled>Next &rarr;</button>
+                <?php endif; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 </div>

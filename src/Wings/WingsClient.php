@@ -25,6 +25,18 @@ class WingsClient
         return Encrypter::decryptString($node['daemon_token']);
     }
 
+    public static function isNodeReachable(array $node, float $timeout = 0.8): bool
+    {
+        $fqdn = $node['fqdn'] ?? '127.0.0.1';
+        $port = (int)($node['daemonListen'] ?? 8080);
+        $fp = @fsockopen($fqdn, $port, $errno, $errstr, $timeout);
+        if ($fp) {
+            fclose($fp);
+            return true;
+        }
+        return false;
+    }
+
     public static function request(
         array $node,
         string $method,
@@ -75,12 +87,15 @@ class WingsClient
         curl_close($ch);
 
         if ($response === false) {
-            throw new RuntimeException("Wings Daemon connection failed: {$error}");
+            throw new RuntimeException("Unable to reach the node.");
         }
 
         if ($httpCode >= 400) {
             $decoded = json_decode($response, true);
-            $errMsg = $decoded['error'] ?? $decoded['message'] ?? "HTTP {$httpCode} error from Wings";
+            $errMsg = $decoded['error'] ?? $decoded['message'] ?? "Unable to reach the node.";
+            if (is_string($errMsg) && (str_contains($errMsg, 'Wings') || str_contains($errMsg, 'daemon') || str_contains($errMsg, 'cURL') || str_contains($errMsg, 'connect'))) {
+                $errMsg = "Unable to reach the node.";
+            }
             throw new RuntimeException($errMsg, $httpCode);
         }
 

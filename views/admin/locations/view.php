@@ -7,7 +7,7 @@
     </div>
     <div style="display: flex; gap: 8px;">
         <a href="/admin/locations" class="btn btn-secondary btn-sm">Back to Locations</a>
-        <form action="/admin/locations/view/<?= $location['id'] ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this location?');" style="margin: 0;">
+        <form action="/admin/locations/view/<?= $location['id'] ?>" method="POST" data-confirm="Are you sure you want to delete this location?" style="margin: 0;">
             <?= \Pterodactyl\Core\View::csrf() ?>
             <input type="hidden" name="_method" value="DELETE">
             <button type="submit" class="btn btn-danger btn-sm">Delete Location</button>

@@ -47,9 +47,14 @@
             <form action="/auth/checkpoint" method="POST">
                 <?= \Pterodactyl\Core\View::csrf() ?>
 
-                <div class="form-group" style="margin-bottom: 24px;">
+                <div class="form-group" style="margin-bottom: 20px;">
                     <label class="form-label" for="code">Authentication Code</label>
-                    <input type="text" id="code" name="code" class="form-control" style="font-size: 20px; text-align: center; letter-spacing: 0.3em; font-family: var(--font-mono);" required autofocus maxlength="6" autocomplete="one-time-code">
+                    <input type="text" id="code" name="code" class="form-control" style="font-size: 20px; text-align: center; letter-spacing: 0.3em; font-family: var(--font-mono);" required autofocus maxlength="6" autocomplete="one-time-code" placeholder="000000">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+                    <input type="checkbox" id="remember" name="remember" value="1" style="width: 16px; height: 16px; cursor: pointer; accent-color: #3b82f6;">
+                    <label for="remember" style="font-size: 13px; color: var(--text-secondary); cursor: pointer; user-select: none;">Remember this device for 30 days</label>
                 </div>
 
                 <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 14px; margin-bottom: 12px;">

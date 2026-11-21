@@ -62,6 +62,15 @@ class ServerConsole {
             });
         }
 
+        // Clear console button
+        const clearBtn = document.getElementById('btn-clear-console');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.clearConsole();
+            });
+        }
+
         // Terminal command input
         if (this.commandInput) {
             this.commandInput.addEventListener('keydown', (e) => {
@@ -98,7 +107,18 @@ class ServerConsole {
 
     async connect() {
         try {
-            const data = await App.request(`/api/client/servers/${this.serverUuid}/websocket`);
+            const data = await App.request(`/api/client/servers/${this.serverUuid}/websocket`).catch(() => null);
+            if (!data || data.reachable === false || data.error) {
+                this.showNodeUnreachable();
+                clearTimeout(this.reconnectTimer);
+                this.reconnectTimer = setTimeout(() => this.connect(), 10000);
+                return;
+            }
+            if (!data.data || !data.data.socket) {
+                this.showNodeUnreachable();
+                return;
+            }
+
             this.token = data.data.token;
             this.socketUrl = data.data.socket;
 
@@ -114,16 +134,32 @@ class ServerConsole {
 
             this.socket.onclose = () => {
                 clearTimeout(this.reconnectTimer);
-                this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+                this.reconnectTimer = setTimeout(() => this.connect(), 5000);
             };
 
             this.socket.onerror = () => {
-                this.log('Unable to reach the node. Please ensure the Wings service is running.', 'ansi-red');
+                // Silently attempt reconnect in background - do not spam console
             };
         } catch (e) {
-            this.log(`Could not connect to the node: ${e.message.includes('403') ? 'Access Denied' : 'Node is currently unavailable'}`, 'ansi-red');
+            this.showNodeUnreachable();
             clearTimeout(this.reconnectTimer);
-            this.reconnectTimer = setTimeout(() => this.connect(), 5000);
+            this.reconnectTimer = setTimeout(() => this.connect(), 10000);
+        }
+    }
+
+    showNodeUnreachable() {
+        this.updateStatus('offline');
+        if (!this.terminalWindow) return;
+        const lastLine = this.terminalWindow.lastElementChild;
+        if (lastLine && lastLine.textContent.includes('Unable to reach the node.')) {
+            return;
+        }
+        const line = document.createElement('div');
+        line.className = 'terminal-line terminal-system-line';
+        line.innerHTML = '<span style="color: #ef4444; font-weight: 600;">Unable to reach the node.</span>';
+        this.terminalWindow.appendChild(line);
+        if (this.autoScroll) {
+            this.terminalWindow.scrollTop = this.terminalWindow.scrollHeight;
         }
     }
 
@@ -332,9 +368,24 @@ class ServerConsole {
         return input.split(/\r?\n/).map(l => this.parseAnsiLine(l)).join('\n');
     }
 
+    clearConsole() {
+        if (this.terminalWindow) {
+            this.terminalWindow.innerHTML = '';
+            try {
+                sessionStorage.removeItem(this.storageKey);
+            } catch (e) {}
+        }
+    }
+
     sendCommand() {
         const cmd = this.commandInput.value.trim();
         if (!cmd) return;
+
+        if (cmd.toLowerCase() === 'clear' || cmd.toLowerCase() === 'cls') {
+            this.clearConsole();
+            this.commandInput.value = '';
+            return;
+        }
 
         this.history.push(cmd);
         if (this.history.length > 50) this.history.shift();
@@ -347,7 +398,15 @@ class ServerConsole {
             App.request(`/api/client/servers/${this.serverUuid}/command`, {
                 method: 'POST',
                 body: { command: cmd }
-            }).catch(e => App.toast(e.message, 'danger'));
+            }).then(res => {
+                if (res && res.error) {
+                    this.showNodeUnreachable();
+                    App.toast('Unable to reach the node.', 'danger');
+                }
+            }).catch(() => {
+                this.showNodeUnreachable();
+                App.toast('Unable to reach the node.', 'danger');
+            });
         }
 
         this.commandInput.value = '';
@@ -361,10 +420,16 @@ class ServerConsole {
             App.request(`/api/client/servers/${this.serverUuid}/power`, {
                 method: 'POST',
                 body: { action }
-            }).then(() => {
-                App.toast(`Signal '${action}' sent to server.`, 'info');
-            }).catch(e => {
-                App.toast(e.message, 'danger');
+            }).then(res => {
+                if (res && res.error) {
+                    this.showNodeUnreachable();
+                    App.toast('Unable to reach the node.', 'danger');
+                } else {
+                    App.toast(`Signal '${action}' sent to server.`, 'info');
+                }
+            }).catch(() => {
+                this.showNodeUnreachable();
+                App.toast('Unable to reach the node.', 'danger');
             });
         }
     }

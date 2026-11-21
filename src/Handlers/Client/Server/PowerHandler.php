@@ -61,7 +61,7 @@ class PowerHandler
 
             return Response::noContent();
         } catch (\Throwable $e) {
-            return Response::json(['error' => $e->getMessage()], 500);
+            return Response::json(['error' => 'Unable to reach the node.'], 200);
         }
     }
 

@@ -61,7 +61,7 @@
                                 <td><?= \Pterodactyl\Core\View::e($k['last_used_at'] ?? 'Never') ?></td>
                                 <td><?= \Pterodactyl\Core\View::e($k['created_at']) ?></td>
                                 <td style="text-align: right;">
-                                    <form action="/admin/api/<?= $k['identifier'] ?>" method="POST" onsubmit="return confirm('Revoke and delete this API key? External systems using it will lose access immediately.');" style="margin: 0;">
+                                    <form action="/admin/api/<?= $k['identifier'] ?>" method="POST" data-confirm="Revoke and delete this API key? External systems using it will lose access immediately." style="margin: 0;">
                                         <?= \Pterodactyl\Core\View::csrf() ?>
                                         <input type="hidden" name="_method" value="DELETE">
                                         <button type="submit" class="btn btn-danger btn-sm" style="padding: 2px 8px;">Revoke</button>

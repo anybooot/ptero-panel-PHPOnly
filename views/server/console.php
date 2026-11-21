@@ -19,12 +19,12 @@
         <?php $allocAddr = $allocation ? ($allocation['ip_alias'] ?: $allocation['ip']) . ':' . $allocation['port'] : 'No allocation'; ?>
         <div class="sidebar-block">
             <div class="sidebar-stat-label">Connection Address</div>
-            <div id="btn-copy-server-ip" class="console-ip-card" onclick="copyConsoleIp('<?= \Pterodactyl\Core\View::e($allocAddr) ?>')" title="Click to copy IP:Port">
+            <div id="btn-copy-server-ip" class="console-ip-card" onclick="copyConsoleIp('<?= \Pterodactyl\Core\View::e($allocAddr) ?>')" data-tooltip="Click to copy IP:Port">
                 <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
                     <span style="font-size: 13px; opacity: 0.8;">🌐</span>
                     <span id="console-ip-text" style="font-family: var(--font-mono); font-size: 12.5px; font-weight: 600; color: #eceff4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"><?= \Pterodactyl\Core\View::e($allocAddr) ?></span>
                 </div>
-                <span id="console-ip-copy-icon" style="color: var(--text-muted); font-size: 12px; flex-shrink: 0;">📋</span>
+                <span id="console-ip-copy-icon" style="color: var(--text-muted); display: inline-flex; align-items: center; flex-shrink: 0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
             </div>
         </div>
 
@@ -91,10 +91,17 @@
     <div class="console-main-panel">
         <!-- Terminal Box -->
         <div class="terminal-wrapper" style="margin-bottom: 20px;">
-            <div id="terminal-window" class="terminal-window"></div>
+            <div class="terminal-header-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 6px 14px; background: #121319; border-bottom: 1px solid var(--border-color); border-radius: var(--radius-md) var(--radius-md) 0 0;">
+                <span style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;">Server Console</span>
+                <button type="button" id="btn-clear-console" class="btn btn-secondary btn-sm" style="padding: 2px 10px; font-size: 11px; line-height: 1.4; display: inline-flex; align-items: center; gap: 5px;" data-tooltip="Clear console output">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>Clear</span>
+                </button>
+            </div>
+            <div id="terminal-window" class="terminal-window" style="border-top-left-radius: 0; border-top-right-radius: 0;"></div>
             <div class="terminal-input-bar">
                 <span class="terminal-prompt-icon">&gt;</span>
-                <input type="text" id="terminal-command-input" class="terminal-input" placeholder="Type a command and press Enter..." autocomplete="off" spellcheck="false">
+                <input type="text" id="terminal-command-input" class="terminal-input" placeholder="Type a command and press Enter... (or 'clear' to clear console)" autocomplete="off" spellcheck="false">
             </div>
         </div>
 
@@ -135,17 +142,7 @@
 
 <script>
 function copyConsoleIp(addr) {
-    if (!addr || addr === 'No allocation') return;
-    navigator.clipboard.writeText(addr).then(() => {
-        App.toast(`Address ${addr} copied to clipboard!`, 'success');
-        const icon = document.getElementById('console-ip-copy-icon');
-        if (icon) {
-            icon.textContent = '✓';
-            setTimeout(() => icon.textContent = '📋', 1500);
-        }
-    }).catch(() => {
-        App.toast('Failed to copy IP', 'danger');
-    });
+    App.copyToClipboard(addr, document.getElementById('btn-copy-server-ip'));
 }
 
 document.addEventListener('DOMContentLoaded', () => {

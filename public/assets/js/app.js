@@ -51,6 +51,10 @@ const App = (() => {
             throw errorObj;
         }
 
+        if (data && typeof data === 'object' && data.error && (data.error.includes('Unable to reach the node') || data.error.includes('Wings'))) {
+            data.error = 'Unable to reach the node.';
+        }
+
         return data;
     };
 
@@ -130,8 +134,157 @@ const App = (() => {
         return div.innerHTML;
     };
 
+    // Robust Copy to Clipboard with fallback for HTTP / non-secure contexts
+    const copyToClipboard = async (text, targetEl = null) => {
+        if (!text || text === 'No allocation' || text === '-') return false;
+        let success = false;
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                success = true;
+            }
+        } catch (e) {}
+
+        if (!success) {
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                ta.style.top = '-9999px';
+                ta.setAttribute('readonly', '');
+                document.body.appendChild(ta);
+                ta.select();
+                ta.setSelectionRange(0, 99999);
+                success = document.execCommand('copy');
+                document.body.removeChild(ta);
+            } catch (err) {
+                success = false;
+            }
+        }
+
+        if (success) {
+            toast(`Address ${text} copied to clipboard!`, 'success', 2500);
+            if (targetEl) {
+                const icon = targetEl.querySelector('.server-address-icon, #console-ip-copy-icon, .server-ip-copy-icon') || (targetEl.tagName === 'SPAN' || targetEl.tagName === 'BUTTON' ? targetEl : null);
+                if (icon) {
+                    const originalHtml = icon.innerHTML;
+                    icon.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+                    setTimeout(() => {
+                        icon.innerHTML = originalHtml;
+                    }, 1500);
+                }
+            }
+        } else {
+            toast('Failed to copy to clipboard', 'danger');
+        }
+        return success;
+    };
+
+    // Suppress unhandled rejections and console errors for node unreachability to keep browser console clean
+    window.addEventListener('unhandledrejection', (e) => {
+        const reason = e.reason;
+        const msg = (reason && (reason.message || reason.error || String(reason))) || '';
+        if (msg.includes('Unable to reach the node') || msg.includes('Wings') || msg.includes('node is currently unavailable')) {
+            e.preventDefault();
+        }
+    });
+
+    try {
+        const origConsoleError = console.error;
+        console.error = function(...args) {
+            const str = args.map(a => (typeof a === 'object' && a !== null ? (a.message || JSON.stringify(a)) : String(a))).join(' ');
+            if (str.includes('Unable to reach the node') || str.includes('Wings') || str.includes('node is currently unavailable')) {
+                return;
+            }
+            origConsoleError.apply(console, args);
+        };
+    } catch (e) {}
+
+    // Custom Confirmation Dialog (Replaces native browser window.confirm popup)
+    const confirm = (message, options = {}) => {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('modal-app-confirm');
+            const titleEl = document.getElementById('app-confirm-title-text');
+            const msgEl = document.getElementById('app-confirm-message');
+            const okBtn = document.getElementById('app-confirm-btn-ok');
+            const cancelBtn = document.getElementById('app-confirm-btn-cancel');
+            const closeBtn = document.getElementById('app-confirm-close-btn');
+
+            if (!modal || !okBtn || !cancelBtn) {
+                resolve(true);
+                return;
+            }
+
+            if (titleEl) titleEl.textContent = options.title || 'Confirm Action';
+            if (msgEl) msgEl.textContent = message;
+            okBtn.textContent = options.confirmText || 'Confirm';
+            okBtn.className = `btn btn-sm ${options.danger === false ? 'btn-primary' : 'btn-danger'}`;
+
+            modal.classList.add('active');
+
+            let resolved = false;
+            const finish = (val) => {
+                if (resolved) return;
+                resolved = true;
+                modal.classList.remove('active');
+                okBtn.removeEventListener('click', handleOk);
+                cancelBtn.removeEventListener('click', handleCancel);
+                if (closeBtn) closeBtn.removeEventListener('click', handleCancel);
+                document.removeEventListener('keydown', handleKey);
+                resolve(val);
+            };
+
+            const handleOk = () => finish(true);
+            const handleCancel = () => finish(false);
+            const handleKey = (e) => {
+                if (e.key === 'Escape') finish(false);
+            };
+
+            okBtn.addEventListener('click', handleOk);
+            cancelBtn.addEventListener('click', handleCancel);
+            if (closeBtn) closeBtn.addEventListener('click', handleCancel);
+            document.addEventListener('keydown', handleKey);
+        });
+    };
+
+    // Override native browser alert to use custom toast
+    window.alert = (msg) => {
+        toast(String(msg), 'info');
+    };
+
     // Global Event Listeners
     document.addEventListener('DOMContentLoaded', () => {
+        // Intercept form submissions with confirmation dialogs to prevent native popups
+        document.addEventListener('submit', function(e) {
+            const form = e.target;
+            if (!form || form.dataset.confirmed === 'true') {
+                if (form) delete form.dataset.confirmed;
+                return;
+            }
+
+            let msg = form.getAttribute('data-confirm');
+            const onsubmitAttr = form.getAttribute('onsubmit') || '';
+            if (!msg && onsubmitAttr.includes('confirm(')) {
+                const match = onsubmitAttr.match(/confirm\s*\(\s*(['"])(.*?)\1\s*\)/);
+                if (match) {
+                    msg = match[2];
+                }
+            }
+
+            if (msg) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                confirm(msg).then((ok) => {
+                    if (ok) {
+                        form.dataset.confirmed = 'true';
+                        form.submit();
+                    }
+                });
+                return false;
+            }
+        }, true);
+
         // Modal close buttons
         document.addEventListener('click', (e) => {
             if (e.target.matches('[data-modal-close]') || e.target.closest('[data-modal-close]')) {
@@ -148,6 +301,115 @@ const App = (() => {
                 document.querySelectorAll('.modal-backdrop.active').forEach(m => m.classList.remove('active'));
             }
         });
+
+        // Account dropdown in top navigation
+        const userDropdownBtn = document.getElementById('user-dropdown-btn');
+        const userDropdownMenu = document.getElementById('user-dropdown-menu');
+        if (userDropdownBtn && userDropdownMenu) {
+            userDropdownBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const isShown = userDropdownMenu.style.display === 'block';
+                userDropdownMenu.style.display = isShown ? 'none' : 'block';
+            });
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.user-dropdown-container')) {
+                    userDropdownMenu.style.display = 'none';
+                }
+            });
+        }
+
+        // Global Custom Tooltips (Point 9)
+        let tooltipEl = document.getElementById('app-custom-tooltip');
+        if (!tooltipEl) {
+            tooltipEl = document.createElement('div');
+            tooltipEl.id = 'app-custom-tooltip';
+            tooltipEl.className = 'custom-tooltip';
+            document.body.appendChild(tooltipEl);
+        }
+
+        let tipTimer = null;
+        const showCustomTip = (target, text) => {
+            if (!text || !tooltipEl) return;
+            tooltipEl.textContent = text;
+            tooltipEl.className = 'custom-tooltip';
+
+            const rect = target.getBoundingClientRect();
+            const tipRect = tooltipEl.getBoundingClientRect();
+
+            let top = rect.top - tipRect.height - 8;
+            let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+
+            let arrowTop = false;
+            if (top < 6) {
+                top = rect.bottom + 8;
+                arrowTop = true;
+            }
+
+            if (left < 6) left = 6;
+            if (left + tipRect.width > window.innerWidth - 6) {
+                left = window.innerWidth - tipRect.width - 6;
+            }
+
+            tooltipEl.style.top = `${top}px`;
+            tooltipEl.style.left = `${left}px`;
+            if (arrowTop) tooltipEl.classList.add('arrow-top');
+
+            requestAnimationFrame(() => {
+                tooltipEl.classList.add('active');
+            });
+        };
+
+        const hideCustomTip = () => {
+            clearTimeout(tipTimer);
+            if (tooltipEl) tooltipEl.classList.remove('active');
+        };
+
+        // Intercept title and data-tooltip on mouseover / pointerdown / hold
+        document.addEventListener('mouseover', (e) => {
+            const target = e.target.closest('[title], [data-tooltip]');
+            if (!target) return;
+
+            if (target.hasAttribute('title')) {
+                const titleVal = target.getAttribute('title');
+                target.setAttribute('data-tooltip', titleVal);
+                target.removeAttribute('title');
+            }
+
+            const tipText = target.getAttribute('data-tooltip');
+            if (!tipText) return;
+
+            clearTimeout(tipTimer);
+            tipTimer = setTimeout(() => {
+                showCustomTip(target, tipText);
+            }, 60);
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            const target = e.target.closest('[data-tooltip]');
+            if (target) {
+                hideCustomTip();
+            }
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            const target = e.target.closest('[data-tooltip], [title]');
+            if (target) {
+                if (target.hasAttribute('title')) {
+                    const titleVal = target.getAttribute('title');
+                    target.setAttribute('data-tooltip', titleVal);
+                    target.removeAttribute('title');
+                }
+                const tipText = target.getAttribute('data-tooltip');
+                if (tipText) {
+                    clearTimeout(tipTimer);
+                    showCustomTip(target, tipText);
+                }
+            }
+        });
+
+        document.addEventListener('click', () => hideCustomTip());
+        window.addEventListener('scroll', () => hideCustomTip(), true);
     });
 
     return {
@@ -156,8 +418,12 @@ const App = (() => {
         openModal,
         closeModal,
         toast,
-        escapeHtml
+        escapeHtml,
+        copyToClipboard,
+        copy: copyToClipboard,
+        confirm
     };
 })();
 
 window.App = App;
+window.copyToClipboard = App.copyToClipboard;

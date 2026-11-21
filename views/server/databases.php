@@ -61,13 +61,13 @@
                                 <td>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="font-family: var(--font-mono); color: #cbd5e1;"><?= \Pterodactyl\Core\View::e($dbUser) ?></span>
-                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbUser) ?>', 'Username copied!')" title="Copy Username">📋</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 2px 7px; display: inline-flex; align-items: center; justify-content: center;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbUser) ?>', 'Username copied!')" data-tooltip="Copy Username"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                                     </div>
                                 </td>
                                 <td>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span style="font-family: var(--font-mono); color: #e5e7eb;"><?= \Pterodactyl\Core\View::e($dbHost . ':' . $dbPort) ?></span>
-                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbHost . ':' . $dbPort) ?>', 'Endpoint copied!')" title="Copy Endpoint">📋</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 2px 7px; display: inline-flex; align-items: center; justify-content: center;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbHost . ':' . $dbPort) ?>', 'Endpoint copied!')" data-tooltip="Copy Endpoint"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                                     </div>
                                 </td>
                                 <td>
@@ -76,8 +76,8 @@
                                 <td>
                                     <div style="display: flex; align-items: center; gap: 6px;">
                                         <span id="pwd-display-<?= $d['id'] ?>" data-hidden="true" data-pwd="<?= \Pterodactyl\Core\View::e($dbPass) ?>" style="font-family: var(--font-mono); background: rgba(0,0,0,0.3); padding: 3px 8px; border-radius: 4px; color: #eceff4; min-width: 90px; text-align: center;">••••••••</span>
-                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 11px;" onclick="togglePasswordView('<?= $d['id'] ?>')" title="Toggle visibility">👁</button>
-                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 10px;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbPass) ?>', 'Password copied!')" title="Copy Password">📋</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 1px 6px; font-size: 11px;" onclick="togglePasswordView('<?= $d['id'] ?>')" data-tooltip="Toggle visibility">👁</button>
+                                        <button type="button" class="btn btn-secondary btn-sm" style="padding: 2px 7px; display: inline-flex; align-items: center; justify-content: center;" onclick="copyToClipboard('<?= \Pterodactyl\Core\View::e($dbPass) ?>', 'Password copied!')" data-tooltip="Copy Password"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                                     </div>
                                 </td>
                                 <td style="text-align: right; white-space: nowrap;">
@@ -89,9 +89,9 @@
                                         'port' => $dbPort,
                                         'remote' => $dbRemote,
                                         'jdbc' => $jdbcUrl
-                                    ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>)' title="Connection Details">Details</button>
-                                    <button class="btn btn-secondary btn-sm" onclick="rotateDbPassword('<?= $d['id'] ?>')" title="Rotate Password">Rotate</button>
-                                    <button class="btn btn-danger btn-sm" onclick="deleteDb('<?= $d['id'] ?>')" title="Delete Database">Delete</button>
+                                    ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>)' data-tooltip="Connection Details">Details</button>
+                                    <button class="btn btn-secondary btn-sm" onclick="rotateDbPassword('<?= $d['id'] ?>')" data-tooltip="Rotate Password">Rotate</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteDb('<?= $d['id'] ?>')" data-tooltip="Delete Database">Delete</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -141,7 +141,7 @@
                     <label class="form-label" style="font-size: 11px;">Endpoint (Host)</label>
                     <div style="display: flex; gap: 6px;">
                         <input type="text" id="modal-dt-host" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyInput('modal-dt-host')">📋</button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 10px;" onclick="copyInput('modal-dt-host')" data-tooltip="Copy Endpoint"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                     </div>
                 </div>
                 <div>
@@ -155,14 +155,14 @@
                     <label class="form-label" style="font-size: 11px;">Database Name</label>
                     <div style="display: flex; gap: 6px;">
                         <input type="text" id="modal-dt-name" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyInput('modal-dt-name')">📋</button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 10px;" onclick="copyInput('modal-dt-name')" data-tooltip="Copy Database Name"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                     </div>
                 </div>
                 <div>
                     <label class="form-label" style="font-size: 11px;">Username</label>
                     <div style="display: flex; gap: 6px;">
                         <input type="text" id="modal-dt-user" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyInput('modal-dt-user')">📋</button>
+                        <button type="button" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 10px;" onclick="copyInput('modal-dt-user')" data-tooltip="Copy Username"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                     </div>
                 </div>
             </div>
@@ -171,7 +171,7 @@
                 <label class="form-label" style="font-size: 11px;">Password</label>
                 <div style="display: flex; gap: 6px;">
                     <input type="text" id="modal-dt-pass" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyInput('modal-dt-pass')">📋</button>
+                    <button type="button" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 10px;" onclick="copyInput('modal-dt-pass')" data-tooltip="Copy Password"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                 </div>
             </div>
 
@@ -179,7 +179,7 @@
                 <label class="form-label" style="font-size: 11px;">JDBC Connection String</label>
                 <div style="display: flex; gap: 6px;">
                     <input type="text" id="modal-dt-jdbc" class="form-control" readonly style="font-family: var(--font-mono); font-size: 12px;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyInput('modal-dt-jdbc')">📋</button>
+                    <button type="button" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; justify-content: center; padding: 0 10px;" onclick="copyInput('modal-dt-jdbc')" data-tooltip="Copy JDBC String"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
                 </div>
             </div>
         </div>
@@ -191,11 +191,7 @@
 
 <script>
 function copyToClipboard(text, msg = 'Copied to clipboard!') {
-    navigator.clipboard.writeText(text).then(() => {
-        App.toast(msg, 'success');
-    }).catch(() => {
-        App.toast('Failed to copy', 'danger');
-    });
+    App.copyToClipboard(text);
 }
 
 function copyInput(inputId) {
@@ -245,7 +241,7 @@ document.getElementById('create-db-form').addEventListener('submit', async (e) =
 });
 
 async function rotateDbPassword(id) {
-    if (!confirm('Are you sure you want to rotate this database password? Any plugins or services connected with the old password will stop working until updated.')) return;
+    if (!await App.confirm('Are you sure you want to rotate this database password? Any plugins or services connected with the old password will stop working until updated.')) return;
     try {
         await App.request(`/api/client/servers/<?= $server['uuid'] ?>/databases/${id}/rotate-password`, {
             method: 'POST'
@@ -258,7 +254,7 @@ async function rotateDbPassword(id) {
 }
 
 async function deleteDb(id) {
-    if (!confirm('Are you sure you want to delete this database? All data inside it will be permanently deleted.')) return;
+    if (!await App.confirm('Are you sure you want to delete this database? All data inside it will be permanently deleted.')) return;
     try {
         await App.request(`/api/client/servers/<?= $server['uuid'] ?>/databases/${id}`, {
             method: 'DELETE'

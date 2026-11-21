@@ -95,7 +95,8 @@ class SettingsHandler
             return Response::noContent();
         } catch (\Throwable $e) {
             Database::execute("UPDATE `servers` SET `status` = NULL WHERE `id` = :id", ['id' => $server['id']]);
-            return Response::json(['error' => $e->getMessage()], 500);
+            $msg = (str_contains($e->getMessage(), 'Unable to reach the node') || str_contains($e->getMessage(), 'Wings')) ? 'Unable to reach the node.' : $e->getMessage();
+            return Response::json(['error' => $msg], 200);
         }
     }
 

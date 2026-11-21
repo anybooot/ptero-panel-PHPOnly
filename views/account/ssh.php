@@ -93,7 +93,7 @@ document.getElementById('add-ssh-key-form').addEventListener('submit', async (e)
 });
 
 async function deleteSshKey(fingerprint) {
-    if (!confirm('Are you sure you want to delete this SSH key?')) return;
+    if (!await App.confirm('Are you sure you want to delete this SSH key?')) return;
     try {
         await App.request('/account/ssh/delete', {
             method: 'POST',

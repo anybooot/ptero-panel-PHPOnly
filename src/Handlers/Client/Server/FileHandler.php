@@ -77,11 +77,7 @@ class FileHandler
 
             return Response::json(['data' => $files]);
         } catch (\Throwable $e) {
-            $msg = $e->getMessage();
-            if (str_contains($msg, 'Wings Daemon connection failed') || str_contains($msg, 'Connection timed out') || str_contains($msg, 'Failed to connect') || str_contains($msg, 'cURL error')) {
-                $msg = 'The node is currently unavailable. Please ensure Wings is running.';
-            }
-            return Response::json(['error' => $msg], 500);
+            return Response::json(['error' => 'Unable to reach the node.', 'data' => []], 200);
         }
     }
 
@@ -98,6 +94,7 @@ class FileHandler
         }
 
         $file = (string)$request->input('file', '');
+        $directory = (string)$request->input('directory', '');
         $content = '';
         if ($file !== '') {
             try {
@@ -116,6 +113,7 @@ class FileHandler
             'node' => $server['node'],
             'user' => $user,
             'file' => $file,
+            'directory' => $directory,
             'content' => $content,
             'activeTab' => 'files',
         ]);
@@ -166,7 +164,7 @@ class FileHandler
             \Pterodactyl\Core\ActivityLogger::log('server:file.write', $user, ['file' => $file], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
-            return Response::json(['error' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
@@ -187,7 +185,7 @@ class FileHandler
             \Pterodactyl\Core\ActivityLogger::log('server:file.rename', $user, ['files' => $files], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
-            return Response::json(['error' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
@@ -207,7 +205,7 @@ class FileHandler
             \Pterodactyl\Core\ActivityLogger::log('server:file.copy', $user, ['location' => $location], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
-            return Response::json(['error' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
@@ -228,7 +226,7 @@ class FileHandler
             \Pterodactyl\Core\ActivityLogger::log('server:file.delete', $user, ['files' => $files], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
-            return Response::json(['error' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
@@ -253,7 +251,7 @@ class FileHandler
             \Pterodactyl\Core\ActivityLogger::log('server:file.create-directory', $user, ['directory' => $path, 'name' => $name], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
-            return Response::json(['error' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
@@ -273,7 +271,7 @@ class FileHandler
             WingsClient::chmodFiles($server['node'], $server['uuid'], $root, $files);
             return Response::noContent();
         } catch (\Throwable $e) {
-            return Response::json(['error' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
@@ -294,7 +292,7 @@ class FileHandler
             \Pterodactyl\Core\ActivityLogger::log('server:file.compress', $user, ['files' => $files], $request, $server);
             return Response::json(['data' => $res]);
         } catch (\Throwable $e) {
-            return Response::json(['error' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
@@ -315,7 +313,7 @@ class FileHandler
             \Pterodactyl\Core\ActivityLogger::log('server:file.decompress', $user, ['file' => $file], $request, $server);
             return Response::noContent();
         } catch (\Throwable $e) {
-            return Response::json(['error' => $e->getMessage()], 500);
+            return $this->errorResponse($e);
         }
     }
 
@@ -392,5 +390,14 @@ class FileHandler
             'object' => 'signed_url',
             'attributes' => ['url' => $url],
         ]);
+    }
+
+    private function errorResponse(\Throwable $e): Response
+    {
+        $msg = $e->getMessage();
+        if (str_contains($msg, 'Unable to reach the node') || str_contains($msg, 'Wings') || str_contains($msg, 'connection') || str_contains($msg, 'timed out') || str_contains($msg, 'cURL') || str_contains($msg, 'Failed to connect')) {
+            return Response::json(['error' => 'Unable to reach the node.'], 200);
+        }
+        return Response::json(['error' => $msg], 500);
     }
 }

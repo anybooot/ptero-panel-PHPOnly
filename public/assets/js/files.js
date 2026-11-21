@@ -27,6 +27,16 @@ class FileManager {
     init() {
         this.bindEvents();
         this.bindChmodHelpers();
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryDir = urlParams.get('directory');
+        if (queryDir) {
+            this.currentDirectory = queryDir;
+        } else if (this.currentDirectory === '/') {
+            const savedDir = sessionStorage.getItem('ptero_last_dir_' + this.serverUuid);
+            if (savedDir && savedDir !== '/') {
+                this.currentDirectory = savedDir;
+            }
+        }
         this.loadDirectory(this.currentDirectory);
     }
 
@@ -58,6 +68,14 @@ class FileManager {
         if (this.btnBulkDelete) {
             this.btnBulkDelete.addEventListener('click', () => this.deleteSelected());
         }
+
+        window.addEventListener('popstate', () => {
+            const params = new URLSearchParams(window.location.search);
+            const dir = params.get('directory') || '/';
+            if (dir !== this.currentDirectory) {
+                this.loadDirectory(dir);
+            }
+        });
 
         const btnDeselect = document.getElementById('btn-bulk-deselect');
         if (btnDeselect) {
@@ -152,6 +170,25 @@ class FileManager {
 
     async loadDirectory(dir) {
         this.currentDirectory = dir || '/';
+        try {
+            sessionStorage.setItem('ptero_last_dir_' + this.serverUuid, this.currentDirectory);
+        } catch (e) {}
+
+        try {
+            const url = new URL(window.location.href);
+            if (this.currentDirectory && this.currentDirectory !== '/') {
+                url.searchParams.set('directory', this.currentDirectory);
+            } else {
+                url.searchParams.delete('directory');
+            }
+            window.history.replaceState({ directory: this.currentDirectory }, '', url.toString());
+        } catch (e) {}
+
+        const newFileBtn = document.getElementById('btn-new-file');
+        if (newFileBtn) {
+            newFileBtn.href = `/server/${this.serverUuid.substring(0, 8)}/files/edit` + (this.currentDirectory !== '/' ? `?directory=${encodeURIComponent(this.currentDirectory)}` : '');
+        }
+
         this.renderBreadcrumbs();
         if (this.selectAllCheckbox) this.selectAllCheckbox.checked = false;
         this.updateBulkToolbar();
@@ -161,28 +198,17 @@ class FileManager {
         }
 
         try {
-            const res = await App.request(`/api/client/servers/${this.serverUuid}/files/list?directory=${encodeURIComponent(this.currentDirectory)}`);
+            const res = await App.request(`/api/client/servers/${this.serverUuid}/files/list?directory=${encodeURIComponent(this.currentDirectory)}`).catch(() => ({ error: 'Unable to reach the node.' }));
+            if (res && res.error) {
+                if (this.tbody) {
+                    this.tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 36px 20px; font-weight: 600; font-size: 14px;">Unable to reach the node.</td></tr>';
+                }
+                return;
+            }
             this.renderFiles(res.data || []);
         } catch (e) {
             if (this.tbody) {
-                const msg = e.message || '';
-                const isConnErr = msg.includes('Wings Daemon connection failed') ||
-                                  msg.includes('Connection timed out') ||
-                                  msg.includes('Failed to connect') ||
-                                  msg.includes('cURL error');
-
-                if (isConnErr) {
-                    this.tbody.innerHTML = `
-                        <tr>
-                            <td colspan="5" style="text-align: center; padding: 36px 20px;">
-                                <div style="font-size: 32px; margin-bottom: 8px;">🔌</div>
-                                <div style="color: #f87171; font-weight: 700; font-size: 15px; margin-bottom: 4px;">Node is currently unavailable.</div>
-                                <div style="color: var(--text-secondary); font-size: 13px;">Could not establish a connection to the Wings daemon. Please ensure the node is running.</div>
-                            </td>
-                        </tr>`;
-                } else {
-                    this.tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 24px;">Failed to load files: ${App.escapeHtml(msg)}</td></tr>`;
-                }
+                this.tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #ef4444; padding: 36px 20px; font-weight: 600; font-size: 14px;">Unable to reach the node.</td></tr>';
             }
         }
     }
@@ -260,7 +286,7 @@ class FileManager {
                         <span style="margin-right: 8px;">${icon}</span>
                         ${isDir
                             ? `<a href="javascript:void(0)" onclick="window.fileManager.loadDirectory('${fullPath}')" style="font-weight: 600; color: #eceff4;">${App.escapeHtml(fileName)}</a>`
-                            : `<a href="/server/${this.serverUuid.substring(0, 8)}/files/edit?file=${encodeURIComponent(fullPath)}" style="color: #cbd5e1;">${App.escapeHtml(fileName)}</a>`
+                            : `<a href="/server/${this.serverUuid.substring(0, 8)}/files/edit?file=${encodeURIComponent(fullPath)}&directory=${encodeURIComponent(this.currentDirectory)}" style="color: #cbd5e1;">${App.escapeHtml(fileName)}</a>`
                         }
                     </td>
                     <td style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary);">${sizeStr}</td>
@@ -377,7 +403,7 @@ class FileManager {
         const files = this.getSelectedFiles();
         if (files.length === 0) return;
 
-        if (!confirm(`Are you sure you want to delete ${files.length} selected item(s)?`)) return;
+        if (!await App.confirm(`Are you sure you want to delete ${files.length} selected item(s)?`)) return;
 
         try {
             await App.request(`/api/client/servers/${this.serverUuid}/files/delete`, {
@@ -491,7 +517,7 @@ class FileManager {
 
     async deleteFile(name) {
         document.querySelectorAll('.file-dropdown-menu').forEach(m => m.style.display = 'none');
-        if (!confirm(`Are you sure you want to delete '${name}'?`)) return;
+        if (!await App.confirm(`Are you sure you want to delete '${name}'?`)) return;
 
         try {
             await App.request(`/api/client/servers/${this.serverUuid}/files/delete`, {
@@ -551,7 +577,7 @@ class FileManager {
                 if (overlaySize) overlaySize.textContent = `0 MB / ${totalMb} MB (File ${i + 1} of ${files.length})`;
                 if (overlayBar) overlayBar.style.width = '0%';
                 if (overlayPercent) overlayPercent.textContent = '0%';
-                if (overlayStatus) overlayStatus.textContent = `Uploading directly to Wings node...`;
+                if (overlayStatus) overlayStatus.textContent = `Uploading directly to node...`;
 
                 const formData = new FormData();
                 formData.append('files', file);

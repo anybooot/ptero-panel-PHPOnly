@@ -12,6 +12,7 @@
     <a href="/admin/settings" class="<?= ($activeSettingTab ?? '') === 'general' ? 'active' : '' ?>">General</a>
     <a href="/admin/settings/mail" class="<?= ($activeSettingTab ?? '') === 'mail' ? 'active' : '' ?>">Mail (SMTP)</a>
     <a href="/admin/settings/advanced" class="<?= ($activeSettingTab ?? '') === 'advanced' ? 'active' : '' ?>">Advanced</a>
+    <a href="/admin/settings/acc-create" class="<?= ($activeSettingTab ?? '') === 'acc-create' ? 'active' : '' ?>">Acc Create</a>
 </nav>
 
 <form action="/admin/settings/advanced" method="POST">
@@ -77,23 +78,11 @@
             </div>
         </div>
 
-        <!-- Two-Factor Authentication Requirement -->
-        <div class="card">
-            <div class="card-header">Two-Factor Authentication Requirement</div>
+        <!-- Client Features -->
+        <div class="card" style="grid-column: span 2;">
+            <div class="card-header">Client Self-Allocations</div>
             <div class="card-body">
                 <div class="form-group">
-                    <label class="form-label" for="auth-2fa">Enforce 2FA</label>
-                    <select id="auth-2fa" name="auth:2fa_required" class="form-control">
-                        <option value="0" <?= $twoFactorRequirement === 0 ? 'selected' : '' ?>>Not Required</option>
-                        <option value="1" <?= $twoFactorRequirement === 1 ? 'selected' : '' ?>>Admin Users Only</option>
-                        <option value="2" <?= $twoFactorRequirement === 2 ? 'selected' : '' ?>>All Users</option>
-                    </select>
-                    <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 6px;">
-                        Require users to have two-factor authentication enabled on their accounts in order to use the panel.
-                    </small>
-                </div>
-
-                <div class="form-group" style="margin-top: 18px;">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-primary);">
                         <input type="checkbox" name="pterodactyl:client_features:allocations:enabled" value="1" <?= $allocationsEnabled ? 'checked' : '' ?>>
                         <span style="font-weight: 600;">Allow Server Self-Allocations</span>
@@ -103,7 +92,7 @@
                     </small>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; max-width: 600px;">
                     <div class="form-group">
                         <label class="form-label" for="alloc-start">Port Range Start</label>
                         <input type="number" id="alloc-start" name="pterodactyl:client_features:allocations:range_start" class="form-control" value="<?= (int)($allocRangeStart ?? 1024) ?>" placeholder="1024">
@@ -112,34 +101,6 @@
                         <label class="form-label" for="alloc-end">Port Range End</label>
                         <input type="number" id="alloc-end" name="pterodactyl:client_features:allocations:range_end" class="form-control" value="<?= (int)($allocRangeEnd ?? 65535) ?>" placeholder="65535">
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Password Security Policies -->
-        <div class="card">
-            <div class="card-header">Password Security Policy</div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label class="form-label" for="pwd-len">Minimum Password Length</label>
-                    <input type="number" id="pwd-len" name="auth:password_min_length" class="form-control" min="8" max="64" value="<?= (int)$pwdMinLength ?>">
-                </div>
-
-                <div class="form-group" style="margin-top: 14px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-primary); margin-bottom: 8px;">
-                        <input type="checkbox" name="auth:password_require_uppercase" value="1" <?= $pwdRequireMixed ? 'checked' : '' ?>>
-                        <span>Require Uppercase &amp; Lowercase Characters</span>
-                    </label>
-
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-primary); margin-bottom: 8px;">
-                        <input type="checkbox" name="auth:password_require_numbers" value="1" <?= $pwdRequireNumbers ? 'checked' : '' ?>>
-                        <span>Require Numbers (0-9)</span>
-                    </label>
-
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--text-primary);">
-                        <input type="checkbox" name="auth:password_require_symbols" value="1" <?= $pwdRequireSymbols ? 'checked' : '' ?>>
-                        <span>Require Special Symbols (!@#$%^&amp;*)</span>
-                    </label>
                 </div>
             </div>
         </div>

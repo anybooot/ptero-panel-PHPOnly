@@ -6,7 +6,7 @@
         <div id="files-breadcrumbs" style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">/</div>
     </div>
     <div style="display: flex; gap: 8px;">
-        <a href="/server/<?= $server['uuidShort'] ?>/files/edit" class="btn btn-secondary btn-sm">New File</a>
+        <a href="/server/<?= $server['uuidShort'] ?>/files/edit" class="btn btn-secondary btn-sm" id="btn-new-file">New File</a>
         <button class="btn btn-secondary btn-sm" onclick="App.openModal('modal-new-folder')">New Folder</button>
         <label class="btn btn-primary btn-sm" style="margin: 0; cursor: pointer;">
             Upload File
@@ -162,7 +162,7 @@
             <div id="upload-modal-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #9ca3af, #ffffff); transition: width 0.15s ease;"></div>
         </div>
         <div id="upload-modal-percent" style="font-weight: 700; font-size: 15px; color: #eceff4;">0%</div>
-        <div id="upload-modal-status" style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">Uploading directly to Wings node...</div>
+        <div id="upload-modal-status" style="font-size: 12px; color: var(--text-secondary); margin-top: 6px;">Uploading directly to node...</div>
     </div>
 </div>
 

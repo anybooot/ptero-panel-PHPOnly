@@ -9,7 +9,7 @@
         <a href="/admin/nests/egg/<?= $egg['id'] ?>/export" class="btn btn-secondary btn-sm" download>Export JSON</a>
         <button type="button" class="btn btn-secondary btn-sm" onclick="App.openModal('modal-clone-egg')">Clone Egg</button>
         <a href="/admin/nests/view/<?= $egg['nest_id'] ?>" class="btn btn-secondary btn-sm">Back to Nest</a>
-        <form action="/admin/nests/egg/<?= $egg['id'] ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this egg?');" style="margin: 0;">
+        <form action="/admin/nests/egg/<?= $egg['id'] ?>" method="POST" data-confirm="Are you sure you want to delete this egg?" style="margin: 0;">
             <?= \Pterodactyl\Core\View::csrf() ?>
             <input type="hidden" name="_method" value="DELETE">
             <button type="submit" class="btn btn-danger btn-sm">Delete Egg</button>

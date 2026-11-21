@@ -87,19 +87,25 @@
 
 <!-- Enable 2FA Modal -->
 <div class="modal-backdrop" id="modal-enable-2fa">
-    <div class="modal-dialog">
+    <div class="modal-dialog" style="max-width: 440px;">
         <div class="modal-header">
             <h3 class="modal-title">Setup Two-Factor Authentication</h3>
             <button class="modal-close" data-modal-close>&times;</button>
         </div>
         <div class="modal-body">
-            <p style="color: var(--text-secondary); margin-bottom: 16px;">Scan the QR code below or manually enter the key into your authenticator app, then enter the 6-digit verification code.</p>
-            <div style="text-align: center; margin-bottom: 16px;">
-                <div id="2fa-secret-display" style="font-family: var(--font-mono); font-size: 18px; font-weight: bold; color: #ffffff; letter-spacing: 0.1em; background: rgba(0,0,0,0.3); padding: 10px; border-radius: var(--radius-sm);"></div>
+            <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 13.5px;">Scan the QR code below using your authenticator app (such as Google Authenticator), or enter the key manually.</p>
+            
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 18px;">
+                <div id="2fa-qr-code-wrapper" style="padding: 12px; background: #ffffff; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0,0,0,0.4); min-width: 174px; min-height: 174px;">
+                    <div id="2fa-qr-code"></div>
+                </div>
+                <div style="margin-top: 14px; font-size: 11.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Manual Secret Key</div>
+                <div id="2fa-secret-display" style="margin-top: 4px; font-family: var(--font-mono); font-size: 14px; font-weight: bold; color: #eceff4; letter-spacing: 0.12em; background: rgba(0,0,0,0.35); padding: 6px 14px; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.08); user-select: all;"></div>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="2fa-verify-code">6-Digit Code</label>
-                <input type="text" id="2fa-verify-code" class="form-control" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 0.2em; font-family: var(--font-mono);">
+
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="2fa-verify-code">6-Digit Verification Code</label>
+                <input type="text" id="2fa-verify-code" class="form-control" maxlength="6" placeholder="000000" style="text-align: center; font-size: 20px; letter-spacing: 0.25em; font-family: var(--font-mono);" autocomplete="off">
             </div>
         </div>
         <div class="modal-footer">
@@ -130,11 +136,27 @@
     </div>
 </div>
 
+<script src="/assets/js/qrcode.min.js"></script>
 <script>
 async function initiate2fa() {
     try {
         const res = await App.request('/account/two-factor');
         document.getElementById('2fa-secret-display').textContent = res.data.secret;
+        
+        const qrContainer = document.getElementById('2fa-qr-code');
+        qrContainer.innerHTML = '';
+        if (window.QRCode && res.data.qr_url) {
+            new QRCode(qrContainer, {
+                text: res.data.qr_url,
+                width: 150,
+                height: 150,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+        
+        document.getElementById('2fa-verify-code').value = '';
         App.openModal('modal-enable-2fa');
     } catch (e) {}
 }

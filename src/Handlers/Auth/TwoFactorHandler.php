@@ -70,6 +70,28 @@ class TwoFactorHandler
         Session::remove('2fa_pending');
         Session::remove('2fa_user_id');
 
+        // Check if 30-day device remember was requested
+        if (!empty($request->input('remember'))) {
+            $expiry = time() + (30 * 86400); // 30 days
+            $appKey = (string)\Pterodactyl\Core\Config::get('APP_KEY', 'default_ptero_key');
+            $signature = hash_hmac('sha256', (string)$user['id'] . '|' . $expiry . '|' . (string)$user['totp_secret'], $appKey);
+            $cookieVal = base64_encode((string)json_encode([
+                'user_id' => $user['id'],
+                'expiry' => $expiry,
+                'signature' => $signature,
+            ]));
+            $secure = str_starts_with((string)\Pterodactyl\Core\Config::get('APP_URL', ''), 'https://');
+            setcookie('pterodactyl_2fa_remember', $cookieVal, [
+                'expires' => $expiry,
+                'path' => '/',
+                'domain' => '',
+                'secure' => $secure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+            $_COOKIE['pterodactyl_2fa_remember'] = $cookieVal;
+        }
+
         \Pterodactyl\Core\ActivityLogger::log('auth:checkpoint', $user['id'], [], $request);
 
         if ($request->isAjax()) {

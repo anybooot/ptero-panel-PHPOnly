@@ -53,7 +53,7 @@
                                     <?php endif; ?>
                                 </td>
                                 <td style="text-align: right;">
-                                    <form action="/admin/servers/view/<?= $server['id'] ?>/mounts/<?= $m['id'] ?>" method="POST" onsubmit="return confirm('Detach this mount from server?');" style="margin: 0;">
+                                    <form action="/admin/servers/view/<?= $server['id'] ?>/mounts/<?= $m['id'] ?>" method="POST" data-confirm="Detach this mount from server?" style="margin: 0;">
                                         <?= \Pterodactyl\Core\View::csrf() ?>
                                         <input type="hidden" name="_method" value="DELETE">
                                         <button type="submit" class="btn btn-danger btn-sm" style="padding: 2px 8px;">Detach</button>

@@ -28,8 +28,18 @@
                     <?php foreach ($allocations as $a): ?>
                         <?php $isPrimary = ((int)$a['id']) === ((int)$server['allocation_id']); ?>
                         <tr>
-                            <td style="font-family: var(--font-mono); font-weight: 600; color: #fff;"><?= \Pterodactyl\Core\View::e($a['ip']) ?></td>
-                            <td style="font-family: var(--font-mono); color: #ffffff; font-weight: 600;"><?= (int)$a['port'] ?></td>
+                            <td style="font-family: var(--font-mono); font-weight: 600; color: #fff;">
+                                <span onclick="App.copyToClipboard('<?= \Pterodactyl\Core\View::e($a['ip']) ?>', this)" data-tooltip="Click to copy IP" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                    <?= \Pterodactyl\Core\View::e($a['ip']) ?>
+                                    <span class="server-address-icon" style="display: inline-flex; align-items: center; opacity: 0.6;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
+                                </span>
+                            </td>
+                            <td style="font-family: var(--font-mono); color: #ffffff; font-weight: 600;">
+                                <span onclick="App.copyToClipboard('<?= \Pterodactyl\Core\View::e(($a['ip_alias'] ?: $a['ip']) . ':' . $a['port']) ?>', this)" data-tooltip="Copy IP:Port" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                    <?= (int)$a['port'] ?>
+                                    <span class="server-address-icon" style="display: inline-flex; align-items: center; opacity: 0.6;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
+                                </span>
+                            </td>
                             <td style="font-family: var(--font-mono); color: var(--text-secondary);"><?= \Pterodactyl\Core\View::e($a['ip_alias'] ?? '-') ?></td>
                             <td><?= \Pterodactyl\Core\View::e($a['notes'] ?? '-') ?></td>
                             <td>
@@ -71,7 +81,7 @@ async function setPrimaryAllocation(id) {
 }
 
 async function deleteAllocation(id) {
-    if (!confirm('Are you sure you want to remove this allocation?')) return;
+    if (!await App.confirm('Are you sure you want to remove this allocation?')) return;
     try {
         await App.request(`/api/client/servers/<?= $server['uuid'] ?>/network/allocations/${id}`, { method: 'DELETE' });
         App.toast('Allocation removed.', 'success');

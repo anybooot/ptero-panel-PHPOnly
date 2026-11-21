@@ -12,6 +12,7 @@
     <a href="/admin/settings" class="<?= ($activeSettingTab ?? '') === 'general' ? 'active' : '' ?>">General</a>
     <a href="/admin/settings/mail" class="<?= ($activeSettingTab ?? '') === 'mail' ? 'active' : '' ?>">Mail (SMTP)</a>
     <a href="/admin/settings/advanced" class="<?= ($activeSettingTab ?? '') === 'advanced' ? 'active' : '' ?>">Advanced</a>
+    <a href="/admin/settings/acc-create" class="<?= ($activeSettingTab ?? '') === 'acc-create' ? 'active' : '' ?>">Acc Create</a>
 </nav>
 
 <div class="card" style="max-width: 800px;">
@@ -63,6 +64,25 @@
         </div>
         <div class="card-footer" style="text-align: right;">
             <button type="submit" class="btn btn-primary">Save Mail Configuration</button>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="max-width: 800px; margin-top: 20px;">
+    <div class="card-header">Test Outbound Email</div>
+    <form action="/admin/settings/mail/test" method="POST">
+        <?= \Pterodactyl\Core\View::csrf() ?>
+        <div class="card-body">
+            <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 14px;">
+                Send a test email to verify your SMTP server connection, encryption, and credentials.
+            </p>
+            <div class="form-group" style="max-width: 400px; margin-bottom: 0;">
+                <label class="form-label" for="test-email">Recipient Email Address</label>
+                <input type="email" id="test-email" name="test_email" class="form-control" value="<?= \Pterodactyl\Core\View::e($user['email'] ?? '') ?>" required placeholder="you@example.com">
+            </div>
+        </div>
+        <div class="card-footer" style="text-align: right;">
+            <button type="submit" class="btn btn-secondary">Send Test Email</button>
         </div>
     </form>
 </div>

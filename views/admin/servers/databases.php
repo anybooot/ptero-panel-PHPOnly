@@ -52,11 +52,11 @@
                                     </span>
                                 </td>
                                 <td style="text-align: right; display: flex; justify-content: flex-end; gap: 6px;">
-                                    <form action="/admin/servers/view/<?= $server['id'] ?>/database/<?= $d['id'] ?>/reset-password" method="POST" onsubmit="return confirm('Reset the password for this database?');" style="margin: 0;">
+                                    <form action="/admin/servers/view/<?= $server['id'] ?>/database/<?= $d['id'] ?>/reset-password" method="POST" data-confirm="Reset the password for this database?" style="margin: 0;">
                                         <?= \Pterodactyl\Core\View::csrf() ?>
                                         <button type="submit" class="btn btn-secondary btn-sm" style="padding: 3px 8px;">Reset Password</button>
                                     </form>
-                                    <form action="/admin/servers/view/<?= $server['id'] ?>/database/<?= $d['id'] ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this database? All data will be permanently destroyed.');" style="margin: 0;">
+                                    <form action="/admin/servers/view/<?= $server['id'] ?>/database/<?= $d['id'] ?>" method="POST" data-confirm="Are you sure you want to delete this database? All data will be permanently destroyed." style="margin: 0;">
                                         <?= \Pterodactyl\Core\View::csrf() ?>
                                         <input type="hidden" name="_method" value="DELETE">
                                         <button type="submit" class="btn btn-danger btn-sm" style="padding: 3px 8px;">Delete</button>

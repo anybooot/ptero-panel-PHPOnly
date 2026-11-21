@@ -12,6 +12,7 @@
     <a href="/admin/settings" class="<?= ($activeSettingTab ?? '') === 'general' ? 'active' : '' ?>">General</a>
     <a href="/admin/settings/mail" class="<?= ($activeSettingTab ?? '') === 'mail' ? 'active' : '' ?>">Mail (SMTP)</a>
     <a href="/admin/settings/advanced" class="<?= ($activeSettingTab ?? '') === 'advanced' ? 'active' : '' ?>">Advanced</a>
+    <a href="/admin/settings/acc-create" class="<?= ($activeSettingTab ?? '') === 'acc-create' ? 'active' : '' ?>">Acc Create</a>
 </nav>
 
 <div class="card" style="max-width: 700px;">
@@ -27,11 +28,7 @@
             <div class="form-group">
                 <label class="form-label" for="app-locale">Default Language / Locale</label>
                 <select id="app-locale" name="app:locale" class="form-control">
-                    <option value="en" <?= $appLocale === 'en' ? 'selected' : '' ?>>English (en)</option>
-                    <option value="de" <?= $appLocale === 'de' ? 'selected' : '' ?>>German (de)</option>
-                    <option value="fr" <?= $appLocale === 'fr' ? 'selected' : '' ?>>French (fr)</option>
-                    <option value="es" <?= $appLocale === 'es' ? 'selected' : '' ?>>Spanish (es)</option>
-                    <option value="ro" <?= $appLocale === 'ro' ? 'selected' : '' ?>>Romanian (ro)</option>
+                    <option value="en" selected>English (en)</option>
                 </select>
             </div>
         </div>

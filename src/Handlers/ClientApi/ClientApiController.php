@@ -220,6 +220,23 @@ class ClientApiController
             return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have permission to view server activity.']]], 403);
         }
 
+        $perPage = 50;
+        $page = max(1, (int)$request->input('page', 1));
+
+        $countRow = Database::queryOne(
+            "SELECT COUNT(DISTINCT al.`id`) as total
+             FROM `activity_log_subjects` als
+             JOIN `activity_logs` al ON al.`id` = als.`activity_log_id`
+             WHERE als.`subject_id` = :server_id AND als.`subject_type` IN ('server', 'App\\\\Models\\\\Server')",
+            ['server_id' => $server['id']]
+        );
+        $total = (int)($countRow['total'] ?? 0);
+        $totalPages = max(1, (int)ceil($total / $perPage));
+        if ($page > $totalPages && $totalPages > 0) {
+            $page = $totalPages;
+        }
+        $offset = ($page - 1) * $perPage;
+
         $logs = Database::query(
             "SELECT al.`id`, al.`batch`, al.`event`, al.`ip`, al.`description`, al.`properties`, al.`timestamp`,
                     u.`username` as actor_username, u.`email` as actor_email
@@ -227,7 +244,7 @@ class ClientApiController
              JOIN `activity_logs` al ON al.`id` = als.`activity_log_id`
              LEFT JOIN `users` u ON u.`id` = al.`actor_id` AND (al.`actor_type` IN ('user', 'App\\\\Models\\\\User') OR al.`actor_type` IS NULL)
              WHERE als.`subject_id` = :server_id AND als.`subject_type` IN ('server', 'App\\\\Models\\\\Server')
-             ORDER BY al.`timestamp` DESC LIMIT 50",
+             ORDER BY al.`timestamp` DESC LIMIT {$perPage} OFFSET {$offset}",
             ['server_id' => $server['id']]
         );
 
@@ -262,11 +279,11 @@ class ClientApiController
             'data' => $data,
             'meta' => [
                 'pagination' => [
-                    'total' => count($data),
+                    'total' => $total,
                     'count' => count($data),
-                    'per_page' => 50,
-                    'current_page' => 1,
-                    'total_pages' => 1,
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'total_pages' => $totalPages,
                 ],
             ],
         ]);

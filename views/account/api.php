@@ -107,7 +107,7 @@ document.getElementById('create-api-key-form').addEventListener('submit', async 
 });
 
 async function deleteApiKey(identifier) {
-    if (!confirm('Are you sure you want to revoke this API key? Any applications using it will immediately lose access.')) return;
+    if (!await App.confirm('Are you sure you want to revoke this API key? Any applications using it will immediately lose access.')) return;
     try {
         await App.request(`/account/api/${identifier}`, { method: 'DELETE' });
         App.toast('API key revoked.', 'success');

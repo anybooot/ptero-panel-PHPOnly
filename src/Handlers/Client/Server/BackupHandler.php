@@ -104,7 +104,7 @@ class BackupHandler
             return Response::json(['id' => $id, 'uuid' => $backupUuid, 'name' => $name]);
         } catch (\Throwable $e) {
             Database::execute("UPDATE `backups` SET `completed_at` = NOW() WHERE `id` = :id", ['id' => $id]);
-            return Response::json(['error' => 'Failed to trigger backup on Wings: ' . $e->getMessage()], 500);
+            return Response::json(['error' => 'Unable to reach the node.'], 200);
         }
     }
 
@@ -208,7 +208,8 @@ class BackupHandler
             return Response::noContent();
         } catch (\Throwable $e) {
             Database::execute("UPDATE `servers` SET `status` = NULL WHERE `id` = :id", ['id' => $server['id']]);
-            return Response::json(['error' => $e->getMessage()], 500);
+            $msg = (str_contains($e->getMessage(), 'Unable to reach the node') || str_contains($e->getMessage(), 'Wings')) ? 'Unable to reach the node.' : $e->getMessage();
+            return Response::json(['error' => $msg], 200);
         }
     }
 

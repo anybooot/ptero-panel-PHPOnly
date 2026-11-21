@@ -7,7 +7,7 @@
     </div>
     <div style="display: flex; gap: 8px;">
         <button class="btn btn-primary btn-sm" onclick="App.openModal('modal-add-allocations')">Assign New Allocations</button>
-        <form action="/admin/nodes/view/<?= $node['id'] ?>/allocations/delete-unassigned" method="POST" onsubmit="return confirm('Are you sure you want to delete ALL unassigned allocations on this node?');" style="margin: 0;">
+        <form action="/admin/nodes/view/<?= $node['id'] ?>/allocations/delete-unassigned" method="POST" data-confirm="Are you sure you want to delete ALL unassigned allocations on this node?" style="margin: 0;">
             <?= \Pterodactyl\Core\View::csrf() ?>
             <button type="submit" class="btn btn-danger btn-sm">Delete Unassigned</button>
         </form>
@@ -58,7 +58,7 @@
                                 </td>
                                 <td style="text-align: right;">
                                     <?php if (empty($a['server_id'])): ?>
-                                        <form action="/admin/nodes/view/<?= $node['id'] ?>/allocation/<?= $a['id'] ?>" method="POST" onsubmit="return confirm('Delete this allocation?');" style="margin: 0; display: inline;">
+                                        <form action="/admin/nodes/view/<?= $node['id'] ?>/allocation/<?= $a['id'] ?>" method="POST" data-confirm="Delete this allocation?" style="margin: 0; display: inline;">
                                             <?= \Pterodactyl\Core\View::csrf() ?>
                                             <input type="hidden" name="_method" value="DELETE">
                                             <button type="submit" class="btn btn-danger btn-sm" style="padding: 2px 8px;">Delete</button>

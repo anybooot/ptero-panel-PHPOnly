@@ -156,13 +156,13 @@ async function toggleLock(uuid) {
 }
 
 async function restoreBackup(uuid) {
-    if (!confirm('Are you sure you want to restore this backup? All current server files may be overwritten.')) return;
+    if (!await App.confirm('Are you sure you want to restore this backup? All current server files may be overwritten.')) return;
     try {
         await App.request(`/api/client/servers/<?= $server['uuid'] ?>/backups/${uuid}/restore`, {
             method: 'POST',
             body: { truncate: false }
         });
-        App.toast('Restoration started on Wings.', 'success');
+        App.toast('Restoration started on node.', 'success');
         setTimeout(() => window.location.reload(), 1000);
     } catch (e) {
         App.toast('Restoration failed: ' + e.message, 'danger');
@@ -170,7 +170,7 @@ async function restoreBackup(uuid) {
 }
 
 async function deleteBackup(uuid) {
-    if (!confirm('Are you sure you want to permanently delete this backup?')) return;
+    if (!await App.confirm('Are you sure you want to permanently delete this backup?')) return;
     try {
         await App.request(`/api/client/servers/<?= $server['uuid'] ?>/backups/${uuid}`, { method: 'DELETE' });
         App.toast('Backup deleted.', 'success');

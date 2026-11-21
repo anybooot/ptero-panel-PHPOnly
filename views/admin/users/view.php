@@ -8,7 +8,7 @@
     <div style="display: flex; gap: 8px;">
         <a href="/admin/users" class="btn btn-secondary btn-sm">Back to Users</a>
         <?php if (((int)$user['id']) !== ((int)$targetUser['id'])): ?>
-            <form action="/admin/users/view/<?= $targetUser['id'] ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this user?');" style="margin: 0;">
+            <form action="/admin/users/view/<?= $targetUser['id'] ?>" method="POST" data-confirm="Are you sure you want to delete this user?" style="margin: 0;">
                 <?= \Pterodactyl\Core\View::csrf() ?>
                 <input type="hidden" name="_method" value="DELETE">
                 <button type="submit" class="btn btn-danger btn-sm">Delete User</button>

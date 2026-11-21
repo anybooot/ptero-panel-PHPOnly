@@ -29,6 +29,16 @@ class Routes
         $router->get('/auth/checkpoint', [Auth\TwoFactorHandler::class, 'showCheckpoint']);
         $router->post('/auth/checkpoint', [Auth\TwoFactorHandler::class, 'verifyCheckpoint'], [CsrfMiddleware::class]);
 
+        // Password Reset
+        $router->get('/auth/password', [Auth\ForgotPasswordHandler::class, 'showForgotForm']);
+        $router->post('/auth/password', [Auth\ForgotPasswordHandler::class, 'sendResetLink'], [CsrfMiddleware::class]);
+        $router->get('/auth/password/reset/{token}', [Auth\ForgotPasswordHandler::class, 'showResetForm']);
+        $router->post('/auth/password/reset', [Auth\ForgotPasswordHandler::class, 'resetPassword'], [CsrfMiddleware::class]);
+
+        // Registration
+        $router->get('/auth/register', [Auth\RegisterHandler::class, 'showRegister']);
+        $router->post('/auth/register', [Auth\RegisterHandler::class, 'register'], [CsrfMiddleware::class]);
+
         // ================= REMOTE API (Wings Daemon) =================
         $router->group(['prefix' => '/api/remote', 'middleware' => [DaemonAuthMiddleware::class]], function (Router $r) {
             $r->post('/sftp/auth', Remote\SftpAuthHandler::class);
@@ -335,8 +345,11 @@ class Routes
             $r->post('/settings', [Admin\SettingsHandler::class, 'updateGeneral'], [CsrfMiddleware::class]);
             $r->get('/settings/mail', [Admin\SettingsHandler::class, 'mail']);
             $r->post('/settings/mail', [Admin\SettingsHandler::class, 'updateMail'], [CsrfMiddleware::class]);
+            $r->post('/settings/mail/test', [Admin\SettingsHandler::class, 'testMail'], [CsrfMiddleware::class]);
             $r->get('/settings/advanced', [Admin\SettingsHandler::class, 'advanced']);
             $r->post('/settings/advanced', [Admin\SettingsHandler::class, 'updateAdvanced'], [CsrfMiddleware::class]);
+            $r->get('/settings/acc-create', [Admin\SettingsHandler::class, 'accCreate']);
+            $r->post('/settings/acc-create', [Admin\SettingsHandler::class, 'updateAccCreate'], [CsrfMiddleware::class]);
 
             // API Keys
             $r->get('/api', [Admin\ApiHandler::class, 'index']);

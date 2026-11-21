@@ -22,6 +22,15 @@ Config::load(__DIR__);
 $command = $argv[1] ?? 'help';
 
 switch ($command) {
+    case 'seed:eggs':
+        echo "=== Seeding default eggs ===\n";
+        try {
+            \Pterodactyl\Core\EggSeeder::seedDefaults(fn($m) => print($m));
+            echo "✓ Default eggs updated successfully!\n";
+        } catch (\Throwable $e) {
+            echo "Note: " . $e->getMessage() . "\n";
+        }
+        break;
     case 'p:environment:setup':
     case 'env:setup':
         echo "=== Configure Environment (.env) ===\n";

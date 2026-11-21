@@ -343,6 +343,22 @@ class AccountHandler
     public function activity(Request $request): Response
     {
         $user = $request->getAttribute('user');
+        $perPage = 50;
+        $page = max(1, (int)$request->input('page', 1));
+
+        $countRow = Database::queryOne(
+            "SELECT COUNT(DISTINCT al.`id`) as total
+             FROM `activity_logs` al
+             WHERE al.`actor_id` = :user_id AND (al.`actor_type` = 'user' OR al.`actor_type` LIKE '%User' OR al.`actor_type` IS NULL)",
+            ['user_id' => $user['id']]
+        );
+        $total = (int)($countRow['total'] ?? 0);
+        $totalPages = max(1, (int)ceil($total / $perPage));
+        if ($page > $totalPages && $totalPages > 0) {
+            $page = $totalPages;
+        }
+        $offset = ($page - 1) * $perPage;
+
         $logs = Database::query(
             "SELECT al.`id`, al.`batch`, al.`event`, al.`ip`, al.`description`, al.`properties`, al.`timestamp`,
                     MAX(s.`name`) as `server_name`, MAX(s.`uuidShort`) as `server_uuid_short`
@@ -351,7 +367,7 @@ class AccountHandler
              LEFT JOIN `servers` s ON s.`id` = als.`subject_id`
              WHERE al.`actor_id` = :user_id AND (al.`actor_type` = 'user' OR al.`actor_type` LIKE '%User' OR al.`actor_type` IS NULL)
              GROUP BY al.`id`
-             ORDER BY al.`timestamp` DESC, al.`id` DESC LIMIT 100",
+             ORDER BY al.`timestamp` DESC, al.`id` DESC LIMIT {$perPage} OFFSET {$offset}",
             ['user_id' => $user['id']]
         );
 
@@ -384,18 +400,25 @@ class AccountHandler
                 'data' => $formatted,
                 'meta' => [
                     'pagination' => [
-                        'total' => count($logs),
+                        'total' => $total,
                         'count' => count($logs),
-                        'per_page' => 100,
-                        'current_page' => 1,
-                        'total_pages' => 1,
+                        'per_page' => $perPage,
+                        'current_page' => $page,
+                        'total_pages' => $totalPages,
                         'links' => [],
                     ],
                 ],
             ]);
         }
 
-        $html = View::render('account.activity', ['user' => $user, 'logs' => $logs]);
+        $html = View::render('account.activity', [
+            'user' => $user,
+            'logs' => $logs,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'total' => $total,
+            'perPage' => $perPage,
+        ]);
         return Response::html($html);
     }
 }

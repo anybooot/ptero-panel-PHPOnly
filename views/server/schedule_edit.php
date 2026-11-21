@@ -103,7 +103,7 @@ document.getElementById('add-task-form').addEventListener('submit', async (e) =>
 });
 
 async function deleteTask(taskId) {
-    if (!confirm('Are you sure you want to remove this task?')) return;
+    if (!await App.confirm('Are you sure you want to remove this task?')) return;
     try {
         await App.request(`/api/client/servers/<?= $server['uuid'] ?>/schedules/<?= $schedule['id'] ?>/tasks/${taskId}`, {
             method: 'DELETE'

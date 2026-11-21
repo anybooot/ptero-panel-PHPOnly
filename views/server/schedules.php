@@ -141,7 +141,7 @@ async function executeSchedule(id) {
 }
 
 async function deleteSchedule(id) {
-    if (!confirm('Are you sure you want to delete this schedule? All configured tasks will be removed.')) return;
+    if (!await App.confirm('Are you sure you want to delete this schedule? All configured tasks will be removed.')) return;
     try {
         await App.request(`/api/client/servers/<?= $server['uuid'] ?>/schedules/${id}`, { method: 'DELETE' });
         App.toast('Schedule deleted.', 'success');

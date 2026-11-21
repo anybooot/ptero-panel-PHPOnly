@@ -56,7 +56,7 @@
                                 </td>
                                 <td style="text-align: right; display: flex; justify-content: flex-end; gap: 6px;">
                                     <button type="button" class="btn btn-secondary btn-sm" style="padding: 2px 8px;" onclick='openEditVariableModal(<?= json_encode($v) ?>)'>Edit</button>
-                                    <form action="/admin/nests/egg/<?= $egg['id'] ?>/variables/<?= $v['id'] ?>" method="POST" onsubmit="return confirm('Delete this variable?');" style="margin: 0;">
+                                    <form action="/admin/nests/egg/<?= $egg['id'] ?>/variables/<?= $v['id'] ?>" method="POST" data-confirm="Delete this variable?" style="margin: 0;">
                                         <?= \Pterodactyl\Core\View::csrf() ?>
                                         <input type="hidden" name="_method" value="DELETE">
                                         <button type="submit" class="btn btn-danger btn-sm" style="padding: 2px 8px;">Delete</button>

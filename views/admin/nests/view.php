@@ -9,7 +9,7 @@
         <a href="/admin/nests/egg/import?nest_id=<?= $nest['id'] ?>" class="btn btn-secondary btn-sm">Import Egg</a>
         <a href="/admin/nests/egg/new?nest_id=<?= $nest['id'] ?>" class="btn btn-primary btn-sm">Create New Egg</a>
         <a href="/admin/nests" class="btn btn-secondary btn-sm">Back to Nests</a>
-        <form action="/admin/nests/view/<?= $nest['id'] ?>" method="POST" onsubmit="return confirm('Are you sure you want to delete this nest? All contained eggs must be deleted first.');" style="margin: 0;">
+        <form action="/admin/nests/view/<?= $nest['id'] ?>" method="POST" data-confirm="Are you sure you want to delete this nest? All contained eggs must be deleted first." style="margin: 0;">
             <?= \Pterodactyl\Core\View::csrf() ?>
             <input type="hidden" name="_method" value="DELETE">
             <button type="submit" class="btn btn-danger btn-sm">Delete Nest</button>
