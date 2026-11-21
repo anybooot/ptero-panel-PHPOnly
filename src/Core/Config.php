@@ -63,6 +63,13 @@ class Config
         self::$loaded = true;
     }
 
+    public static function reload(string $basePath): void
+    {
+        self::$loaded = false;
+        self::$env = [];
+        self::load($basePath);
+    }
+
     public static function set(string $key, mixed $value): void
     {
         self::$env[$key] = $value;

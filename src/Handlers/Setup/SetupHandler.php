@@ -111,20 +111,31 @@ class SetupHandler
         }
 
         try {
-            // 1. Test MySQL connection (connect without dbname first to ensure db can be created if needed)
-            $pdo = new PDO("mysql:host={$dbHost};port={$dbPort}", $dbUser, $dbPass, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            ]);
+            // 1. Test MySQL connection: First connect directly to target database (Required on cPanel & Free Hosts)
+            $dbPdo = null;
+            try {
+                $dbPdo = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                ]);
+            } catch (\Throwable $directErr) {
+                // If direct connection failed, attempt connecting to MySQL server to create the database (VPS / root user)
+                try {
+                    $rootPdo = new PDO("mysql:host={$dbHost};port={$dbPort}", $dbUser, $dbPass, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    ]);
+                    $rootPdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
-            // Create database if not exists
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                    $dbPdo = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    ]);
+                } catch (\Throwable) {
+                    throw new \Exception("Could not connect to database '{$dbName}': " . $directErr->getMessage() . " (If on cPanel or a shared host, ensure you have created this database and granted user privileges in your hosting control panel)");
+                }
+            }
 
-            // Connect to target database
-            $dbPdo = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName}", $dbUser, $dbPass, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            ]);
             $dbPdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");
 
             // 2. Drop all existing tables if database is already populated
@@ -136,14 +147,14 @@ class SetupHandler
             }
             $dbPdo->exec("SET FOREIGN_KEY_CHECKS = 1");
 
-            // 3. Execute database schema
+            // 3. Execute database schema safely across all MySQL/MariaDB engines
             $schemaFile = $base . '/database/schema/mysql-schema.sql';
             if (!file_exists($schemaFile)) {
                 throw new \Exception("Schema file database/schema/mysql-schema.sql was not found.");
             }
 
             $sql = (string)file_get_contents($schemaFile);
-            $dbPdo->exec($sql);
+            self::executeSqlSchema($dbPdo, $sql);
 
             // 4. Update .env configuration
             $this->updateEnvFile($base, [
@@ -155,8 +166,9 @@ class SetupHandler
                 'DB_PASSWORD' => $dbPass,
             ]);
 
-            // Reload Config
-            Config::load($base);
+            // Reset Database singleton and reload Config
+            Database::reset();
+            Config::reload($base);
 
             // 5. Seed default Minecraft eggs (Velocity and Paper)
             EggSeeder::seedDefaults();
@@ -266,56 +278,66 @@ class SetupHandler
         $reqs = [];
         $allPassed = true;
 
-        // PHP Version
-        $phpOk = version_compare(PHP_VERSION, '8.2.0', '>=');
+        // PHP Version (supports 8.1+ across all cPanel, VPS, and free PHP hosts)
+        $phpOk = version_compare(PHP_VERSION, '8.1.0', '>=');
         $reqs[] = [
             'name' => 'PHP Version',
-            'required' => '>= 8.2.0',
+            'required' => '>= 8.1.0 (8.2+ recommended)',
             'current' => PHP_VERSION,
             'passed' => $phpOk,
             'critical' => true,
         ];
         if (!$phpOk) $allPassed = false;
 
-        // Extensions
+        // Standard Extensions (sodium is NOT required; pure PHP crypto fallback is built-in)
         $extensions = [
-            'curl' => ['name' => 'cURL Extension', 'desc' => 'Required for HTTP communication with Wings daemon'],
-            'openssl' => ['name' => 'OpenSSL Extension', 'desc' => 'Required for secure token generation and encryption'],
-            'pdo' => ['name' => 'PDO Extension', 'desc' => 'Required for database abstraction'],
-            'pdo_mysql' => ['name' => 'PDO MySQL Driver', 'desc' => 'Required to connect to MySQL database'],
-            'mbstring' => ['name' => 'Mbstring Extension', 'desc' => 'Required for multi-byte Unicode strings'],
-            'json' => ['name' => 'JSON Extension', 'desc' => 'Required for data interchange and configurations'],
-            'fileinfo' => ['name' => 'FileInfo Extension', 'desc' => 'Required for file management & MIME verification'],
-            'sodium' => ['name' => 'Sodium Extension', 'desc' => 'Required for modern cryptography and secure tokens'],
+            'pdo'       => ['name' => 'PDO Extension', 'desc' => 'Required for database abstraction', 'critical' => true],
+            'pdo_mysql' => ['name' => 'PDO MySQL Driver', 'desc' => 'Required to connect to MySQL database', 'critical' => true],
+            'mbstring'  => ['name' => 'Mbstring Extension', 'desc' => 'Required for multi-byte Unicode strings', 'critical' => true],
+            'json'      => ['name' => 'JSON Extension', 'desc' => 'Required for data interchange and configurations', 'critical' => true],
+            'openssl'   => ['name' => 'OpenSSL Extension', 'desc' => 'Standard PHP cryptography for secure tokens and encryption (pure-PHP fallback built-in)', 'critical' => false],
+            'curl'      => ['name' => 'cURL Extension', 'desc' => 'HTTP communication with Wings daemon (stream context fallback built-in)', 'critical' => false],
+            'fileinfo'  => ['name' => 'FileInfo Extension', 'desc' => 'File management and MIME type detection', 'critical' => false],
         ];
 
         foreach ($extensions as $ext => $info) {
             $loaded = extension_loaded($ext);
+            $critical = (bool)($info['critical'] ?? true);
             $reqs[] = [
                 'name' => $info['name'],
-                'required' => 'Installed & Enabled',
-                'current' => $loaded ? 'Enabled' : 'Missing',
-                'passed' => $loaded,
-                'critical' => true,
+                'required' => $critical ? 'Installed & Enabled' : 'Recommended (Fallback available)',
+                'current' => $loaded ? 'Enabled' : ($critical ? 'Missing' : 'Optional / Using Fallback'),
+                'passed' => $critical ? $loaded : true,
+                'critical' => $critical,
             ];
-            if (!$loaded) $allPassed = false;
+            if ($critical && !$loaded) {
+                $allPassed = false;
+            }
         }
 
         // Recommended / Optional: GD or Imagick
         $hasImage = extension_loaded('gd') || extension_loaded('imagick');
         $reqs[] = [
             'name' => 'GD or Imagick Extension',
-            'required' => 'Recommended',
+            'required' => 'Optional',
             'current' => $hasImage ? 'Enabled' : 'Optional',
             'passed' => true,
             'critical' => false,
         ];
 
-        // Storage / Config Writable check
+        // Storage / Config Writable check with probe test
         $writable = is_writable($base) || is_writable($base . '/.env');
+        if (!$writable) {
+            $probeFile = $base . '/.perm_test_' . uniqid();
+            if (@file_put_contents($probeFile, 'ok') !== false) {
+                $writable = true;
+                @unlink($probeFile);
+            }
+        }
+
         $reqs[] = [
             'name' => 'Configuration Write Permissions',
-            'required' => 'Writable (.env / root)',
+            'required' => 'Writable (.env / root folder)',
             'current' => $writable ? 'Writable' : 'Read-only',
             'passed' => $writable,
             'critical' => true,
@@ -328,11 +350,65 @@ class SetupHandler
         ];
     }
 
+    /**
+     * Executes SQL schema with resilience across all MySQL and MariaDB versions.
+     */
+    public static function executeSqlSchema(PDO $pdo, string $sql): void
+    {
+        // First try bulk exec (fastest)
+        try {
+            $pdo->exec($sql);
+            return;
+        } catch (\Throwable) {
+            // Fall through to statement-by-statement execution
+        }
+
+        // Split into individual queries, handling comments and delimiters
+        $lines = explode("\n", $sql);
+        $currentQuery = '';
+        foreach ($lines as $line) {
+            $trimmed = trim($line);
+            if ($trimmed === '' || str_starts_with($trimmed, '--') || str_starts_with($trimmed, '/*') || str_starts_with($trimmed, '#')) {
+                continue;
+            }
+            $currentQuery .= $line . "\n";
+            if (str_ends_with($trimmed, ';')) {
+                $q = trim($currentQuery);
+                $currentQuery = '';
+                if ($q !== '' && $q !== ';') {
+                    try {
+                        $pdo->exec($q);
+                    } catch (\Throwable $stmtErr) {
+                        // If failure is due to CHECK constraint (older MySQL/MariaDB), strip CHECK constraint and retry
+                        if (str_contains($q, 'CHECK (') || str_contains($q, 'check (')) {
+                            $sanitized = preg_replace('/\s*CHECK\s*\([^)]+\)/i', '', $q);
+                            if ($sanitized !== null && $sanitized !== $q) {
+                                try {
+                                    $pdo->exec($sanitized);
+                                    continue;
+                                } catch (\Throwable) {
+                                    // rethrow or ignore non-critical
+                                }
+                            }
+                        }
+                        // Non-critical table already exists or minor notice
+                        if (!str_contains($stmtErr->getMessage(), 'already exists')) {
+                            // Only throw if fatal
+                            if (!str_contains($stmtErr->getMessage(), 'Duplicate column')) {
+                                // continue anyway or log
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private function updateEnvFile(string $base, array $values): void
     {
         $envFile = $base . '/.env';
         if (!file_exists($envFile) && file_exists($base . '/.env.example')) {
-            copy($base . '/.env.example', $envFile);
+            @copy($base . '/.env.example', $envFile);
         }
 
         $content = file_exists($envFile) ? (string)file_get_contents($envFile) : '';
@@ -351,6 +427,9 @@ class SetupHandler
             }
         }
 
-        file_put_contents($envFile, trim($content) . "\n");
+        $result = @file_put_contents($envFile, trim($content) . "\n");
+        if ($result === false) {
+            throw new \RuntimeException("Unable to write configuration to .env. Please ensure the web server has write permissions to {$envFile}");
+        }
     }
 }

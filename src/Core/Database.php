@@ -15,6 +15,11 @@ class Database
 {
     private static ?PDO $instance = null;
 
+    public static function reset(): void
+    {
+        self::$instance = null;
+    }
+
     public static function connect(): PDO
     {
         if (self::$instance !== null) {

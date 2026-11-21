@@ -18,21 +18,36 @@ class Session
             return;
         }
 
-        ini_set('session.use_strict_mode', '1');
-        ini_set('session.cookie_httponly', '1');
-        ini_set('session.cookie_samesite', 'Lax');
+        @ini_set('session.use_strict_mode', '1');
+        @ini_set('session.cookie_httponly', '1');
+        @ini_set('session.cookie_samesite', 'Lax');
 
         $secure = Config::get('APP_URL', '');
         if (str_starts_with((string)$secure, 'https://')) {
-            ini_set('session.cookie_secure', '1');
+            @ini_set('session.cookie_secure', '1');
         }
 
-        session_name('pterodactyl_session');
-        session_start();
-        self::$started = true;
+        // On restrictive shared / free hosts, check if default session path is writable
+        $savePath = @session_save_path();
+        if (!empty($savePath) && !@is_writable($savePath)) {
+            $fallback = sys_get_temp_dir();
+            if (@is_writable($fallback)) {
+                @session_save_path($fallback);
+            }
+        }
+
+        if (!headers_sent()) {
+            session_name('pterodactyl_session');
+            @session_start();
+        }
+        self::$started = (session_status() === PHP_SESSION_ACTIVE);
 
         if (empty($_SESSION['_csrf_token'])) {
-            $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+            try {
+                $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+            } catch (\Throwable) {
+                $_SESSION['_csrf_token'] = md5(uniqid((string)mt_rand(), true)) . md5(microtime(true) . 'csrf');
+            }
         }
     }
 

@@ -86,21 +86,29 @@ switch ($command) {
         $password = Config::get('DB_PASSWORD', '');
 
         try {
-            // First connect to server and ensure database exists
-            $serverPdo = new PDO("mysql:host={$host};port={$port}", (string)$username, (string)$password, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-            ]);
-            $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-            echo "+ Verified database `{$database}` exists.\n";
+            // First connect directly to target database (Required on shared hosting / cPanel)
+            $dbPdo = null;
+            try {
+                $dbPdo = new PDO("mysql:host={$host};port={$port};dbname={$database}", (string)$username, (string)$password, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+                ]);
+            } catch (\Throwable) {
+                // If direct connection failed, attempt server connection to create database (VPS / root user)
+                $serverPdo = new PDO("mysql:host={$host};port={$port}", (string)$username, (string)$password, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                ]);
+                $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                echo "+ Created / verified database `{$database}` exists.\n";
 
-            // Now connect to the database and execute schema
-            $dbPdo = new PDO("mysql:host={$host};port={$port};dbname={$database}", (string)$username, (string)$password, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
-            ]);
+                $dbPdo = new PDO("mysql:host={$host};port={$port};dbname={$database}", (string)$username, (string)$password, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+                ]);
+            }
 
             $sql = file_get_contents($schemaFile);
-            $dbPdo->exec($sql);
+            \Pterodactyl\Handlers\Setup\SetupHandler::executeSqlSchema($dbPdo, $sql);
 
             $stmt = $dbPdo->query("SHOW TABLES");
             $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -182,16 +190,25 @@ switch ($command) {
             $username = Config::get('DB_USERNAME', 'pterodactyl');
             $password = Config::get('DB_PASSWORD', '');
 
-            $serverPdo = new PDO("mysql:host={$host};port={$port}", (string)$username, (string)$password, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
-            ]);
-            $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $dbPdo = null;
+            try {
+                $dbPdo = new PDO("mysql:host={$host};port={$port};dbname={$database}", (string)$username, (string)$password, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+                ]);
+            } catch (\Throwable) {
+                $serverPdo = new PDO("mysql:host={$host};port={$port}", (string)$username, (string)$password, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                ]);
+                $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
-            $dbPdo = new PDO("mysql:host={$host};port={$port};dbname={$database}", (string)$username, (string)$password, [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
-            ]);
-            $dbPdo->exec(file_get_contents($schemaFile));
+                $dbPdo = new PDO("mysql:host={$host};port={$port};dbname={$database}", (string)$username, (string)$password, [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
+                ]);
+            }
+
+            \Pterodactyl\Handlers\Setup\SetupHandler::executeSqlSchema($dbPdo, file_get_contents($schemaFile));
             $tablesCount = count($dbPdo->query("SHOW TABLES")->fetchAll());
             echo "✓ Database schema applied ({$tablesCount} tables ready)!\n";
         } catch (\Throwable $e) {

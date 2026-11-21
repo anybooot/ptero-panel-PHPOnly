@@ -29,7 +29,14 @@ class WingsClient
     {
         $fqdn = $node['fqdn'] ?? '127.0.0.1';
         $port = (int)($node['daemonListen'] ?? 8080);
-        $fp = @fsockopen($fqdn, $port, $errno, $errstr, $timeout);
+
+        $fp = false;
+        if (function_exists('fsockopen')) {
+            $fp = @fsockopen($fqdn, $port, $errno, $errstr, $timeout);
+        } elseif (function_exists('stream_socket_client')) {
+            $fp = @stream_socket_client("tcp://{$fqdn}:{$port}", $errno, $errstr, $timeout);
+        }
+
         if ($fp) {
             fclose($fp);
             return true;
@@ -59,32 +66,68 @@ class WingsClient
             'Accept: application/json',
         ];
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Wings often uses internal/self-signed certs
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-
         $method = strtoupper($method);
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-
+        $payload = null;
         if ($json !== null) {
             $payload = json_encode($json, JSON_UNESCAPED_SLASHES);
             $headers[] = 'Content-Type: application/json';
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
         } elseif ($rawBody !== null) {
+            $payload = $rawBody;
             $headers[] = 'Content-Type: text/plain';
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $rawBody);
         }
 
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $response = false;
+        $httpCode = 0;
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
-        curl_close($ch);
+        if (function_exists('curl_init')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // Wings often uses internal/self-signed certs
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+
+            if ($payload !== null) {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+            }
+
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+            $response = curl_exec($ch);
+            $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+        } else {
+            // Pure-PHP stream context fallback for environments where ext-curl is disabled
+            $contextOptions = [
+                'http' => [
+                    'method' => $method,
+                    'header' => implode("\r\n", $headers),
+                    'timeout' => $timeout,
+                    'ignore_errors' => true,
+                ],
+                'ssl' => [
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                ],
+            ];
+            if ($payload !== null) {
+                $contextOptions['http']['content'] = $payload;
+            }
+            $context = stream_context_create($contextOptions);
+            $response = @file_get_contents($url, false, $context);
+            $httpCode = 200;
+            $respHeaders = function_exists('http_get_last_response_headers')
+                ? (http_get_last_response_headers() ?? [])
+                : ($http_response_header ?? []);
+            if (!empty($respHeaders) && is_array($respHeaders)) {
+                if (preg_match('#HTTP/\S+\s+(\d{3})#i', (string)($respHeaders[0] ?? ''), $matches)) {
+                    $httpCode = (int)$matches[1];
+                }
+            }
+        }
 
         if ($response === false) {
             throw new RuntimeException("Unable to reach the node.");

@@ -27,6 +27,17 @@ class Request
         $this->uri = $_SERVER['REQUEST_URI'] ?? '/';
         $rawPath = parse_url($this->uri, PHP_URL_PATH) ?: '/';
 
+        // Query routing parameter fallback for shared hosts without mod_rewrite
+        if (!empty($_GET['r'])) {
+            $rawPath = (string)$_GET['r'];
+        } elseif (!empty($_GET['route'])) {
+            $rawPath = (string)$_GET['route'];
+        } elseif (!empty($_GET['_url'])) {
+            $rawPath = (string)$_GET['_url'];
+        } elseif (!empty($_SERVER['PATH_INFO'])) {
+            $rawPath = (string)$_SERVER['PATH_INFO'];
+        }
+
         // Accurately determine base path for all hosting configurations (subfolders, vhosts, cPanel, XAMPP)
         $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
         $scriptDir = rtrim(dirname($scriptName), '/\\');
@@ -58,6 +69,17 @@ class Request
             $rawPath = substr($rawPath, 7);
         } elseif ($rawPath === '/public') {
             $rawPath = '/';
+        }
+
+        // Strip index.php or setup.php if present
+        if (str_starts_with($rawPath, '/index.php/')) {
+            $rawPath = substr($rawPath, 10);
+        } elseif ($rawPath === '/index.php') {
+            $rawPath = '/';
+        } elseif (str_starts_with($rawPath, '/setup.php/')) {
+            $rawPath = '/setup' . substr($rawPath, 10);
+        } elseif ($rawPath === '/setup.php') {
+            $rawPath = '/setup';
         }
 
         $this->path = $rawPath;
