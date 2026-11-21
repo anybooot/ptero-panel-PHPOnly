@@ -150,8 +150,8 @@ if (empty($defaultInputPath) && $parentDir !== '/') {
 </div>
 
 <!-- Ace Editor Core & Extensions -->
-<script src="/assets/js/ace/ace.js"></script>
-<script src="/assets/js/ace/ext-modelist.js"></script>
+<script src="<?= \Pterodactyl\Core\View::asset('assets/js/ace/ace.js') ?>"></script>
+<script src="<?= \Pterodactyl\Core\View::asset('assets/js/ace/ext-modelist.js') ?>"></script>
 
 <style>
 #ace-code-editor {
@@ -266,10 +266,11 @@ if (empty($defaultInputPath) && $parentDir !== '/') {
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     if (window.ace) {
-        ace.config.set("basePath", "/assets/js/ace/");
-        ace.config.set("modePath", "/assets/js/ace/");
-        ace.config.set("themePath", "/assets/js/ace/");
-        ace.config.set("workerPath", "/assets/js/ace/");
+        const aceBase = "<?= \Pterodactyl\Core\View::asset('assets/js/ace/') ?>";
+        ace.config.set("basePath", aceBase);
+        ace.config.set("modePath", aceBase);
+        ace.config.set("themePath", aceBase);
+        ace.config.set("workerPath", aceBase);
     }
 
     const saveBtn = document.getElementById('save-file-btn');

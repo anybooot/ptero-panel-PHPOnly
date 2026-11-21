@@ -187,8 +187,20 @@ HTML;
             return null;
         }
 
-        $filePath = $this->basePath . DIRECTORY_SEPARATOR . 'public' . str_replace('/', DIRECTORY_SEPARATOR, $path);
-        if (!file_exists($filePath) || is_dir($filePath)) {
+        $candidates = [
+            $this->basePath . DIRECTORY_SEPARATOR . 'public' . str_replace('/', DIRECTORY_SEPARATOR, $path),
+            $this->basePath . str_replace('/', DIRECTORY_SEPARATOR, $path),
+        ];
+
+        $filePath = null;
+        foreach ($candidates as $candidate) {
+            if (file_exists($candidate) && !is_dir($candidate)) {
+                $filePath = $candidate;
+                break;
+            }
+        }
+
+        if ($filePath === null) {
             return null;
         }
 

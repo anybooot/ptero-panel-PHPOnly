@@ -21,31 +21,36 @@ if (php_sapi_name() === 'cli-server') {
 $reqUri = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
 if ($reqUri !== '' && $reqUri !== '/' && !str_ends_with($reqUri, '.php')) {
     $cleanPath = '/' . ltrim(preg_replace('#^/public#', '', $reqUri), '/');
-    $assetFile = __DIR__ . '/public' . $cleanPath;
-    $realPublic = realpath(__DIR__ . '/public');
-    $realAsset = realpath($assetFile);
-
-    if ($realAsset && $realPublic && str_starts_with($realAsset, $realPublic) && is_file($realAsset)) {
-        $mimeTypes = [
-            'css'   => 'text/css; charset=utf-8',
-            'js'    => 'application/javascript; charset=utf-8',
-            'svg'   => 'image/svg+xml',
-            'png'   => 'image/png',
-            'jpg'   => 'image/jpeg',
-            'jpeg'  => 'image/jpeg',
-            'gif'   => 'image/gif',
-            'ico'   => 'image/x-icon',
-            'woff'  => 'font/woff',
-            'woff2' => 'font/woff2',
-            'ttf'   => 'font/ttf',
-            'json'  => 'application/json',
+    if (!str_contains($cleanPath, '..')) {
+        $candidates = [
+            __DIR__ . $cleanPath,
+            __DIR__ . '/public' . $cleanPath,
         ];
-        $ext = strtolower(pathinfo($realAsset, PATHINFO_EXTENSION));
-        header('Content-Type: ' . ($mimeTypes[$ext] ?? 'application/octet-stream'));
-        header('Content-Length: ' . filesize($realAsset));
-        header('Cache-Control: public, max-age=86400');
-        readfile($realAsset);
-        exit;
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate)) {
+                $ext = strtolower(pathinfo($candidate, PATHINFO_EXTENSION));
+                $mimeTypes = [
+                    'css'   => 'text/css; charset=utf-8',
+                    'js'    => 'application/javascript; charset=utf-8',
+                    'svg'   => 'image/svg+xml',
+                    'png'   => 'image/png',
+                    'jpg'   => 'image/jpeg',
+                    'jpeg'  => 'image/jpeg',
+                    'gif'   => 'image/gif',
+                    'ico'   => 'image/x-icon',
+                    'woff'  => 'font/woff',
+                    'woff2' => 'font/woff2',
+                    'ttf'   => 'font/ttf',
+                    'json'  => 'application/json',
+                    'map'   => 'application/json',
+                ];
+                header('Content-Type: ' . ($mimeTypes[$ext] ?? 'application/octet-stream'));
+                header('Content-Length: ' . filesize($candidate));
+                header('Cache-Control: public, max-age=86400');
+                readfile($candidate);
+                exit;
+            }
+        }
     }
 }
 

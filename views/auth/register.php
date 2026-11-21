@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="<?= \Pterodactyl\Core\Session::getCsrfToken() ?>">
     <title>Register - <?= \Pterodactyl\Core\View::e($appName ?? 'Pterodactyl') ?></title>
-    <link rel="stylesheet" href="/assets/css/pterodactyl.css">
+    <link rel="stylesheet" href="<?= \Pterodactyl\Core\View::asset('assets/css/pterodactyl.css') ?>">
     <style>
         body {
             display: flex;

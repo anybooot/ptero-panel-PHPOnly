@@ -333,6 +333,22 @@ const App = (() => {
             tooltipEl = document.createElement('div');
             tooltipEl.id = 'app-custom-tooltip';
             tooltipEl.className = 'custom-tooltip';
+            tooltipEl.style.position = 'fixed';
+            tooltipEl.style.zIndex = '999999';
+            tooltipEl.style.pointerEvents = 'none';
+            tooltipEl.style.background = '#181b24';
+            tooltipEl.style.color = '#f1f5f9';
+            tooltipEl.style.border = '1px solid rgba(255, 255, 255, 0.16)';
+            tooltipEl.style.borderRadius = '6px';
+            tooltipEl.style.padding = '5px 10px';
+            tooltipEl.style.fontSize = '11.5px';
+            tooltipEl.style.fontWeight = '500';
+            tooltipEl.style.lineHeight = '1.3';
+            tooltipEl.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.6)';
+            tooltipEl.style.whiteSpace = 'nowrap';
+            tooltipEl.style.opacity = '0';
+            tooltipEl.style.transform = 'translateY(3px) scale(0.97)';
+            tooltipEl.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
             document.body.appendChild(tooltipEl);
         }
 
@@ -361,6 +377,8 @@ const App = (() => {
 
             tooltipEl.style.top = `${top}px`;
             tooltipEl.style.left = `${left}px`;
+            tooltipEl.style.opacity = '1';
+            tooltipEl.style.transform = 'translateY(0) scale(1)';
             if (arrowTop) tooltipEl.classList.add('arrow-top');
 
             requestAnimationFrame(() => {
@@ -370,7 +388,11 @@ const App = (() => {
 
         const hideCustomTip = () => {
             clearTimeout(tipTimer);
-            if (tooltipEl) tooltipEl.classList.remove('active');
+            if (tooltipEl) {
+                tooltipEl.classList.remove('active');
+                tooltipEl.style.opacity = '0';
+                tooltipEl.style.transform = 'translateY(3px) scale(0.97)';
+            }
         };
 
         // Intercept title and data-tooltip on mouseover / pointerdown / hold

@@ -7,15 +7,15 @@
     <meta name="csrf-token" content="<?= \Pterodactyl\Core\Session::getCsrfToken() ?>">
     <title><?= \Pterodactyl\Core\View::e($title ?? $appName ?? 'Pterodactyl') ?></title>
     
-    <link rel="icon" type="image/png" href="/favicons/favicon-32x32.png" sizes="32x32">
-    <link rel="stylesheet" href="/assets/css/pterodactyl.css">
-    <link rel="stylesheet" href="/assets/css/terminal.css">
+    <link rel="icon" type="image/png" href="<?= \Pterodactyl\Core\View::asset('favicons/favicon-32x32.png') ?>" sizes="32x32">
+    <link rel="stylesheet" href="<?= \Pterodactyl\Core\View::asset('assets/css/pterodactyl.css') ?>">
+    <link rel="stylesheet" href="<?= \Pterodactyl\Core\View::asset('assets/css/terminal.css') ?>">
     
     <script>window.PterodactylAppName = <?= json_encode($appName ?? 'Pterodactyl') ?>;</script>
-    <script src="/assets/js/app.js" defer></script>
-    <script src="/assets/js/stats.js" defer></script>
-    <script src="/assets/js/console.js" defer></script>
-    <script src="/assets/js/files.js" defer></script>
+    <script src="<?= \Pterodactyl\Core\View::asset('assets/js/app.js') ?>" defer></script>
+    <script src="<?= \Pterodactyl\Core\View::asset('assets/js/stats.js') ?>" defer></script>
+    <script src="<?= \Pterodactyl\Core\View::asset('assets/js/console.js') ?>" defer></script>
+    <script src="<?= \Pterodactyl\Core\View::asset('assets/js/files.js') ?>" defer></script>
 </head>
 <body>
     <!-- Top Navigation Bar -->
