@@ -9,9 +9,11 @@ namespace Pterodactyl\Core;
  */
 class Request
 {
+    private static string $globalBasePath = '';
     private string $method;
     private string $uri;
     private string $path;
+    private string $basePath;
     private array $headers = [];
     private array $queryParams = [];
     private array $postParams = [];
@@ -23,7 +25,42 @@ class Request
     {
         $this->method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
         $this->uri = $_SERVER['REQUEST_URI'] ?? '/';
-        $this->path = parse_url($this->uri, PHP_URL_PATH) ?: '/';
+        $rawPath = parse_url($this->uri, PHP_URL_PATH) ?: '/';
+
+        // Accurately determine base path for all hosting configurations (subfolders, vhosts, cPanel, XAMPP)
+        $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+        $scriptDir = rtrim(dirname($scriptName), '/\\');
+        if ($scriptDir === '/' || $scriptDir === '\\') {
+            $scriptDir = '';
+        }
+
+        $basePath = '';
+        if ($scriptDir !== '') {
+            if (str_starts_with($rawPath, $scriptDir)) {
+                $basePath = $scriptDir;
+            } elseif (str_ends_with($scriptDir, '/public') && str_starts_with($rawPath, substr($scriptDir, 0, -7))) {
+                $basePath = substr($scriptDir, 0, -7);
+            }
+        }
+
+        $this->basePath = $basePath;
+        self::$globalBasePath = $this->basePath;
+
+        // Strip base path from routing path
+        if ($this->basePath !== '' && str_starts_with($rawPath, $this->basePath)) {
+            $rawPath = substr($rawPath, strlen($this->basePath));
+            if (!str_starts_with($rawPath, '/')) {
+                $rawPath = '/' . $rawPath;
+            }
+        }
+
+        if (str_starts_with($rawPath, '/public/')) {
+            $rawPath = substr($rawPath, 7);
+        } elseif ($rawPath === '/public') {
+            $rawPath = '/';
+        }
+
+        $this->path = $rawPath;
         $this->queryParams = $_GET;
         $this->postParams = $_POST;
         $this->rawBody = file_get_contents('php://input') ?: '';
@@ -71,6 +108,30 @@ class Request
     public function getPath(): string
     {
         return $this->path;
+    }
+
+    public function getBasePath(): string
+    {
+        return $this->basePath;
+    }
+
+    public static function getGlobalBasePath(): string
+    {
+        return self::$globalBasePath;
+    }
+
+    public static function setGlobalBasePath(string $basePath): void
+    {
+        self::$globalBasePath = $basePath;
+    }
+
+    public function getBaseUrl(): string
+    {
+        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || ($_SERVER['SERVER_PORT'] ?? 80) == 443
+            || (strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https://' : 'http://';
+        $host = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? $_SERVER['HTTP_HOST'] ?? '127.0.0.1';
+        return rtrim($protocol . $host . $this->basePath, '/');
     }
 
     public function getHeader(string $name): ?string

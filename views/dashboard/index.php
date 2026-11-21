@@ -3,11 +3,34 @@
 <div class="page-header" style="margin-bottom: 24px;">
     <div>
         <h1 class="page-title" style="font-size: 24px; font-weight: 800; letter-spacing: -0.02em;">Servers</h1>
-        <p class="page-subtitle" style="color: var(--text-secondary); font-size: 13.5px;">Showing all servers available to your account</p>
+        <p class="page-subtitle" style="color: var(--text-secondary); font-size: 13.5px;">Showing <?= !empty($showAll) ? 'all servers created across the panel' : 'servers available to your account' ?></p>
     </div>
-    <div>
+    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+        <?php if (!empty($isAdmin)): ?>
+            <div style="display: flex; align-items: center; background: rgba(255,255,255,0.04); border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 8px;">
+                <label style="display: inline-flex; align-items: center; gap: 10px; margin: 0; cursor: pointer; user-select: none;">
+                    <span style="font-size: 12.5px; font-weight: 600; color: <?= !empty($showAll) ? '#eceff4' : 'var(--text-secondary)' ?>;">
+                        Show all servers
+                    </span>
+                    <span style="position: relative; display: inline-block; width: 38px; height: 20px;">
+                        <input type="checkbox" id="admin-show-all-toggle" <?= !empty($showAll) ? 'checked' : '' ?> onchange="window.location.href = updateShowAll(this.checked)" style="opacity: 0; width: 0; height: 0;">
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: <?= !empty($showAll) ? '#10b981' : '#374151' ?>; transition: .2s; border-radius: 20px;">
+                            <span style="position: absolute; height: 14px; width: 14px; left: <?= !empty($showAll) ? '21px' : '3px' ?>; bottom: 3px; background-color: #ffffff; transition: .2s; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></span>
+                        </span>
+                    </span>
+                </label>
+            </div>
+            <script>
+            function updateShowAll(checked) {
+                const u = new URL(window.location.href);
+                u.searchParams.set('show_all', checked ? '1' : '0');
+                return u.toString();
+            }
+            </script>
+        <?php endif; ?>
+
         <form method="GET" action="/" style="display: flex; gap: 8px;">
-            <input type="text" name="search" class="form-control" placeholder="Search servers by name or UUID..." value="<?= \Pterodactyl\Core\View::e($search ?? '') ?>" style="width: 280px;">
+            <input type="text" name="search" class="form-control" placeholder="Search servers by name or UUID..." value="<?= \Pterodactyl\Core\View::e($search ?? '') ?>" style="width: 260px;">
             <button type="submit" class="btn btn-secondary">Search</button>
             <?php if (!empty($search)): ?>
                 <a href="/" class="btn btn-secondary">Clear</a>
@@ -208,6 +231,10 @@
                         <?php if (!empty($description)): ?>
                             <span>&bull;</span>
                             <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px;"><?= \Pterodactyl\Core\View::e($description) ?></span>
+                        <?php endif; ?>
+                        <?php if (!empty($showAll) && !empty($srv['owner_username']) && (int)$srv['owner_id'] !== (int)$user['id']): ?>
+                            <span>&bull;</span>
+                            <span class="badge badge-secondary" style="font-size: 10.5px; padding: 2px 6px;">Owner: <?= \Pterodactyl\Core\View::e($srv['owner_username']) ?></span>
                         <?php endif; ?>
                     </div>
                 </div>

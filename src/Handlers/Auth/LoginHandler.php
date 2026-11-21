@@ -64,7 +64,7 @@ class LoginHandler
         }
 
         // Check 2FA
-        $has2fa = !empty($user['totp_authenticated']) && !empty($user['totp_secret']);
+        $has2fa = (!empty($user['use_totp']) || !empty($user['totp_authenticated'])) && !empty($user['totp_secret']);
         if ($has2fa) {
             // Check for valid 30-day remembered device
             if ($this->is2faRemembered($user)) {

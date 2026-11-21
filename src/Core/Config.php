@@ -81,6 +81,11 @@ class Config
             return self::parseValue($val);
         }
 
+        if ($key === 'APP_URL' && !empty($_SERVER['HTTP_HOST'])) {
+            $proto = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['SERVER_PORT'] ?? 80) == 443 ? 'https://' : 'http://';
+            return rtrim($proto . $_SERVER['HTTP_HOST'], '/');
+        }
+
         return $default;
     }
 

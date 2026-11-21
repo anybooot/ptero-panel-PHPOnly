@@ -38,14 +38,60 @@ class View
         return (string)Config::get('APP_NAME', 'Pterodactyl');
     }
 
+    public static function url(string $path = '/'): string
+    {
+        $base = Request::getGlobalBasePath();
+        $p = '/' . ltrim($path, '/');
+        if ($base !== '' && !str_starts_with($p, $base . '/') && $p !== $base) {
+            return $base . $p;
+        }
+        return $p;
+    }
+
+    public static function asset(string $path): string
+    {
+        $clean = ltrim($path, '/');
+        return self::url('/' . $clean);
+    }
+
     public static function render(string $template, array $data = []): string
     {
         if (!isset($data['appName'])) {
             $data['appName'] = self::getAppName();
         }
 
+        $base = Request::getGlobalBasePath();
+        if (!isset($data['basePath'])) {
+            $data['basePath'] = $base;
+        }
+
         $view = new self();
-        return $view->renderTemplate($template, array_merge(self::$shared, $data));
+        $html = $view->renderTemplate($template, array_merge(self::$shared, $data));
+
+        // When hosted in a subfolder, dynamically resolve root-relative href, src, action attributes
+        if ($base !== '') {
+            $html = preg_replace_callback(
+                '/(href|src|action)=(["\'])(\/(?!\/)[^"\']*)\2/i',
+                function ($m) use ($base) {
+                    $attr = $m[1];
+                    $quote = $m[2];
+                    $val = $m[3];
+                    if (!str_starts_with($val, $base . '/') && $val !== $base) {
+                        $val = $base . $val;
+                    }
+                    return "{$attr}={$quote}{$val}{$quote}";
+                },
+                $html
+            );
+        }
+
+        // Ensure window.PterodactylBaseUrl is injected in HTML <head> for frontend JS
+        if (str_contains($html, '</head>') && !str_contains($html, 'window.PterodactylBaseUrl')) {
+            $script = '<script>window.PterodactylBaseUrl = ' . json_encode($base, JSON_UNESCAPED_SLASHES) . ';</script></head>';
+            $html = str_replace('</head>', $script, $html);
+        }
+
+        return $html;
     }
 
     private function renderTemplate(string $__template, array $__data): string

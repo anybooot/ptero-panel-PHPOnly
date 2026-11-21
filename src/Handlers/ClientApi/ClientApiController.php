@@ -96,7 +96,10 @@ class ClientApiController
         $params = [];
         $where = [];
 
-        if (!Gate::isRootAdmin($user)) {
+        $isAdmin = Gate::isRootAdmin($user);
+        $showAll = $isAdmin && ($request->boolean('show_all') || \Pterodactyl\Core\Session::get('dash_show_all') === true);
+
+        if (!$isAdmin || !$showAll) {
             $where[] = "(s.`owner_id` = :user_id OR s.`id` IN (SELECT `server_id` FROM `subusers` WHERE `user_id` = :subuser_id))";
             $params['user_id'] = $user['id'];
             $params['subuser_id'] = $user['id'];

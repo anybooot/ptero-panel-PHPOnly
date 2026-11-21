@@ -17,11 +17,17 @@ use Pterodactyl\Handlers\Remote;
 use Pterodactyl\Handlers\Admin;
 use Pterodactyl\Handlers\ApplicationApi;
 use Pterodactyl\Handlers\ClientApi;
+use Pterodactyl\Handlers\Setup;
 
 class Routes
 {
     public static function register(Router $router): void
     {
+        // ================= SETUP WIZARD =================
+        $router->get('/setup', [Setup\SetupHandler::class, 'show']);
+        $router->post('/setup/database', [Setup\SetupHandler::class, 'setupDatabase'], [CsrfMiddleware::class]);
+        $router->post('/setup/user', [Setup\SetupHandler::class, 'createUser'], [CsrfMiddleware::class]);
+
         // ================= AUTHENTICATION =================
         $router->get('/auth/login', [Auth\LoginHandler::class, 'showLogin']);
         $router->post('/auth/login', [Auth\LoginHandler::class, 'login'], [CsrfMiddleware::class]);

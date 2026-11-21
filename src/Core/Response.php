@@ -35,6 +35,12 @@ class Response
 
     public static function redirect(string $url, int $statusCode = 302): self
     {
+        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+            $base = Request::getGlobalBasePath();
+            if ($base !== '' && !str_starts_with($url, $base . '/') && $url !== $base) {
+                $url = $base . $url;
+            }
+        }
         return new self('', $statusCode, ['Location' => $url]);
     }
 

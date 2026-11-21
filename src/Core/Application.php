@@ -50,6 +50,28 @@ class Application
 
     public function handle(Request $request): Response
     {
+        $path = $request->getPath();
+        $isAsset = str_starts_with($path, '/assets/') || str_starts_with($path, '/favicons/');
+
+        if ($isAsset) {
+            $assetResponse = $this->serveStaticAsset($path);
+            if ($assetResponse !== null) {
+                return $assetResponse;
+            }
+        }
+
+        $isSetupRoute = str_starts_with($path, '/setup') || $path === '/setup.php';
+
+        if (!$isAsset) {
+            $isInstalled = \Pterodactyl\Handlers\Setup\SetupHandler::isInstalled($this->basePath);
+            if (!$isInstalled && !$isSetupRoute) {
+                return Response::redirect('/setup');
+            }
+            if ($isInstalled && $isSetupRoute) {
+                return Response::redirect('/auth/login');
+            }
+        }
+
         try {
             return $this->router->dispatch($request);
         } catch (\Throwable $e) {
@@ -157,5 +179,46 @@ APP_KEY=base64:... (generate with: php cli.php key:generate)
 </body>
 </html>
 HTML;
+    }
+
+    private function serveStaticAsset(string $path): ?Response
+    {
+        if (str_contains($path, '..')) {
+            return null;
+        }
+
+        $filePath = $this->basePath . DIRECTORY_SEPARATOR . 'public' . str_replace('/', DIRECTORY_SEPARATOR, $path);
+        if (!file_exists($filePath) || is_dir($filePath)) {
+            return null;
+        }
+
+        $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        $mimeTypes = [
+            'css'   => 'text/css; charset=utf-8',
+            'js'    => 'application/javascript; charset=utf-8',
+            'svg'   => 'image/svg+xml',
+            'png'   => 'image/png',
+            'jpg'   => 'image/jpeg',
+            'jpeg'  => 'image/jpeg',
+            'gif'   => 'image/gif',
+            'ico'   => 'image/x-icon',
+            'woff'  => 'font/woff',
+            'woff2' => 'font/woff2',
+            'ttf'   => 'font/ttf',
+            'map'   => 'application/json',
+            'json'  => 'application/json',
+        ];
+
+        $mime = $mimeTypes[$ext] ?? 'application/octet-stream';
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            return null;
+        }
+
+        return new Response($content, 200, [
+            'Content-Type' => $mime,
+            'Content-Length' => (string)strlen($content),
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
     }
 }

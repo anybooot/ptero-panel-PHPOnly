@@ -143,7 +143,7 @@ class AccountHandler
 
         $encryptedSecret = Encrypter::encryptString($secret);
         Database::execute(
-            "UPDATE `users` SET `totp_secret` = :secret, `totp_authenticated` = 1 WHERE `id` = :id",
+            "UPDATE `users` SET `totp_secret` = :secret, `use_totp` = 1, `totp_authenticated_at` = NOW() WHERE `id` = :id",
             ['secret' => $encryptedSecret, 'id' => $user['id']]
         );
 
@@ -163,7 +163,7 @@ class AccountHandler
         }
 
         Database::execute(
-            "UPDATE `users` SET `totp_secret` = NULL, `totp_authenticated` = 0 WHERE `id` = :id",
+            "UPDATE `users` SET `totp_secret` = NULL, `use_totp` = 0, `totp_authenticated_at` = NULL WHERE `id` = :id",
             ['id' => $user['id']]
         );
 
