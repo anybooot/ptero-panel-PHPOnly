@@ -1,0 +1,1 @@
+<?= \Pterodactyl\Core\ErrorRenderer::render(403, $message ?? 'You do not have the required permission to access this section or resource. Contact an administrator or the server owner to grant access.', $title ?? 'Access Restricted', $exception ?? null) ?>

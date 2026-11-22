@@ -1,0 +1,35 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Block direct browser access to sensitive system files and folders
+    RewriteRule ^(\.env|\.git|src|views|database|storage) - [F,L,NC]
+
+    # 1. If physical file or directory physically exists in root (assets, favicons, robots.txt), SERVE DIRECTLY!
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # 2. If request starts with /public/ and exists, serve it directly
+    RewriteCond %{REQUEST_URI} ^/public/
+    RewriteRule ^ - [L]
+
+    # 3. If file exists inside public/ directory, rewrite to public/$1
+    RewriteCond %{DOCUMENT_ROOT}/public/$1 -f [OR]
+    RewriteCond public/$1 -f
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # 4. Front Controller: send to index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Block access to hidden files (.env, .gitignore, etc.)
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

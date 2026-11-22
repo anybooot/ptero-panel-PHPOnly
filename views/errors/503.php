@@ -1,0 +1,1 @@
+<?= \Pterodactyl\Core\ErrorRenderer::render(503, $message ?? 'The requested node or service is temporarily unavailable or undergoing maintenance. Please try again in a few moments.', $title ?? 'Service Temporarily Unavailable', $exception ?? null) ?>

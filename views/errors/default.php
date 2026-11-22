@@ -1,0 +1,1 @@
+<?= \Pterodactyl\Core\ErrorRenderer::render($code ?? 500, $message ?? null, $title ?? null, $exception ?? null) ?>

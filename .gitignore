@@ -1,0 +1,11 @@
+.env
+vendor/
+*.log
+.phpunit.cache
+.DS_Store
+*.zip
+Thumbs.db
+
+ptero-panel-PHPOnly.zip
+
+.git-backup-*
