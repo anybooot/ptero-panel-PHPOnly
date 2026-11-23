@@ -93,24 +93,36 @@ class ConsoleHandler
             return Response::json(['error' => 'You do not have permission to connect to this server\'s websocket console.'], 403);
         }
 
-        $node = $server['node'];
-        if (!WingsClient::isNodeReachable($node)) {
-            return Response::json(['error' => 'Node is currently unreachable or offline.'], 503);
+        $node = $server['node'] ?? null;
+        if (!$node) {
+            return Response::json(['error' => 'Server node is not configured or not found.'], 500);
         }
 
         // Generate Wings-compatible JWT token
         $userPermissions = Gate::getServerPermissions($user, $server);
-        $payload = [
-            'user_id' => (int)$user['id'],
-            'server_uuid' => $server['uuid'],
-            'permissions' => $userPermissions,
-        ];
+        if (!in_array('*', $userPermissions, true) && !in_array('websocket.connect', $userPermissions, true)) {
+            $userPermissions[] = 'websocket.connect';
+        }
 
-        $token = JwtService::encode($payload, $node['daemonSecret'], 3600);
+        $jwt = new JwtService();
+        $jwt->setUserUuid($user['uuid'] ?? null)
+            ->setScopes('websocket')
+            ->setClaims([
+                'server_uuid' => $server['uuid'],
+                'permissions' => $userPermissions,
+            ])
+            ->setExpiresAt(time() + (10 * 60));
+
+        $token = $jwt->generate(
+            WingsClient::getNodeSecret($node),
+            WingsClient::getNodeConnectionAddress($node),
+            ($user['id'] ?? '') . $server['uuid']
+        );
 
         // Wings WebSocket URL schema
-        $scheme = (!empty($node['scheme']) && $node['scheme'] === 'https') ? 'wss' : 'ws';
-        $socketUrl = "{$scheme}://{$node['fqdn']}:{$node['daemonListen']}/api/servers/{$server['uuid']}/ws";
+        $baseConn = WingsClient::getNodeConnectionAddress($node);
+        $baseWs = str_replace(['https://', 'http://'], ['wss://', 'ws://'], $baseConn);
+        $socketUrl = "{$baseWs}/api/servers/{$server['uuid']}/ws";
 
         return Response::json([
             'data' => [

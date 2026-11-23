@@ -102,6 +102,38 @@ class JwtService
         return "{$dataToSign}.{$encodedSignature}";
     }
 
+    /**
+     * Static helper for encoding JWT payloads directly.
+     */
+    public static function encode(array $payload, string $secret, int $ttl = 3600): string
+    {
+        $now = time();
+        $header = [
+            'typ' => 'JWT',
+            'alg' => 'HS256',
+        ];
+
+        $appUrl = (string)Config::get('APP_URL', 'http://localhost');
+        $basePayload = [
+            'iss' => $appUrl,
+            'iat' => $now,
+            'nbf' => $now - 60,
+            'exp' => $now + $ttl,
+            'unique_id' => bin2hex(random_bytes(16)),
+        ];
+
+        $merged = array_merge($basePayload, $payload);
+
+        $encodedHeader = self::base64UrlEncode((string)json_encode($header, JSON_UNESCAPED_SLASHES));
+        $encodedPayload = self::base64UrlEncode((string)json_encode($merged, JSON_UNESCAPED_SLASHES));
+
+        $dataToSign = "{$encodedHeader}.{$encodedPayload}";
+        $signature = hash_hmac('sha256', $dataToSign, $secret, true);
+        $encodedSignature = self::base64UrlEncode($signature);
+
+        return "{$dataToSign}.{$encodedSignature}";
+    }
+
     public static function base64UrlEncode(string $data): string
     {
         return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
