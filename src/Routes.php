@@ -113,6 +113,8 @@ class Routes
             $r->get('/nests/{id}', [ApplicationApi\ApplicationApiController::class, 'viewNest']);
             $r->get('/nests/{id}/eggs', [ApplicationApi\ApplicationApiController::class, 'listNestEggs']);
             $r->get('/nests/{nestId}/eggs/{eggId}', [ApplicationApi\ApplicationApiController::class, 'viewNestEgg']);
+            $r->get('/eggs', [ApplicationApi\ApplicationApiController::class, 'listEggs']);
+            $r->get('/eggs/{id}', [ApplicationApi\ApplicationApiController::class, 'viewEgg']);
 
             // Database Hosts
             $r->get('/database-hosts', [ApplicationApi\ApplicationApiController::class, 'listDatabaseHosts']);

@@ -5,6 +5,7 @@ vendor/
 .DS_Store
 *.zip
 Thumbs.db
+.git
 
 ptero-panel-PHPOnly.zip
 

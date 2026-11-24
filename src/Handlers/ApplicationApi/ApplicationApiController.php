@@ -64,22 +64,46 @@ class ApplicationApiController
     }
 
     // ==================== USERS ====================
+    public static function formatUser(array $u): array
+    {
+        return [
+            'id' => (int)$u['id'],
+            'external_id' => $u['external_id'] ?? null,
+            'uuid' => (string)$u['uuid'],
+            'username' => (string)$u['username'],
+            'email' => (string)$u['email'],
+            'first_name' => (string)($u['first_name'] ?? $u['name_first'] ?? ''),
+            'last_name' => (string)($u['last_name'] ?? $u['name_last'] ?? ''),
+            'language' => (string)($u['language'] ?? 'en'),
+            'root_admin' => !empty($u['root_admin']),
+            '2fa' => !empty($u['use_totp'] ?? $u['2fa'] ?? 0),
+            'created_at' => !empty($u['created_at']) ? date('c', strtotime((string)$u['created_at'])) : null,
+            'updated_at' => !empty($u['updated_at']) ? date('c', strtotime((string)$u['updated_at'])) : null,
+        ];
+    }
+
     public function listUsers(Request $request): Response
     {
         if ($res = self::authenticate($request)) return $res;
 
-        $users = Database::query("SELECT `id`, `external_id`, `uuid`, `username`, `email`, `name_first`, `name_last`, `language`, `root_admin`, `2fa` as two_factor, `created_at`, `updated_at` FROM `users` ORDER BY `id` ASC");
+        $page = max(1, (int)$request->input('page', 1));
+        $perPage = max(1, min(100, (int)$request->input('per_page', 50)));
+        $offset = ($page - 1) * $perPage;
+
+        $total = (int)(Database::queryOne("SELECT COUNT(*) as c FROM `users`")['c'] ?? 0);
+        $users = Database::query("SELECT `id`, `external_id`, `uuid`, `username`, `email`, `name_first`, `name_last`, `language`, `root_admin`, `use_totp`, `created_at`, `updated_at` FROM `users` ORDER BY `id` ASC LIMIT {$perPage} OFFSET {$offset}");
 
         return Response::json([
             'object' => 'list',
-            'data' => array_map(fn($u) => ['object' => 'user', 'attributes' => $u], $users),
+            'data' => array_map(fn($u) => ['object' => 'user', 'attributes' => self::formatUser($u)], $users),
             'meta' => [
                 'pagination' => [
-                    'total' => count($users),
+                    'total' => $total,
                     'count' => count($users),
-                    'per_page' => 50,
-                    'current_page' => 1,
-                    'total_pages' => 1,
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'total_pages' => (int)ceil($total / max(1, $perPage)),
+                    'links' => (object)[],
                 ],
             ],
         ]);
@@ -89,24 +113,24 @@ class ApplicationApiController
     {
         if ($res = self::authenticate($request)) return $res;
 
-        $user = Database::queryOne("SELECT `id`, `external_id`, `uuid`, `username`, `email`, `name_first`, `name_last`, `language`, `root_admin`, `2fa` as two_factor, `created_at`, `updated_at` FROM `users` WHERE `id` = :id OR `uuid` = :uuid LIMIT 1", ['id' => $id, 'uuid' => $id]);
+        $user = Database::queryOne("SELECT `id`, `external_id`, `uuid`, `username`, `email`, `name_first`, `name_last`, `language`, `root_admin`, `use_totp`, `created_at`, `updated_at` FROM `users` WHERE `id` = :id OR `uuid` = :uuid LIMIT 1", ['id' => $id, 'uuid' => $id]);
         if (!$user) {
             return Response::json(['errors' => [['code' => 'NotFoundHttpException', 'status' => '404', 'detail' => 'The requested user does not exist.']]], 404);
         }
 
-        return Response::json(['object' => 'user', 'attributes' => $user]);
+        return Response::json(['object' => 'user', 'attributes' => self::formatUser($user)]);
     }
 
     public function viewUserExternal(Request $request, string $externalId): Response
     {
         if ($res = self::authenticate($request)) return $res;
 
-        $user = Database::queryOne("SELECT `id`, `external_id`, `uuid`, `username`, `email`, `name_first`, `name_last`, `language`, `root_admin`, `2fa` as two_factor, `created_at`, `updated_at` FROM `users` WHERE `external_id` = :ext LIMIT 1", ['ext' => $externalId]);
+        $user = Database::queryOne("SELECT `id`, `external_id`, `uuid`, `username`, `email`, `name_first`, `name_last`, `language`, `root_admin`, `use_totp`, `created_at`, `updated_at` FROM `users` WHERE `external_id` = :ext LIMIT 1", ['ext' => $externalId]);
         if (!$user) {
             return Response::json(['errors' => [['code' => 'NotFoundHttpException', 'status' => '404', 'detail' => 'The requested user does not exist.']]], 404);
         }
 
-        return Response::json(['object' => 'user', 'attributes' => $user]);
+        return Response::json(['object' => 'user', 'attributes' => self::formatUser($user)]);
     }
 
     public function createUser(Request $request): Response
@@ -153,14 +177,14 @@ class ApplicationApiController
             'password' => password_hash($password, PASSWORD_DEFAULT),
             'language' => (string)$request->input('language', 'en'),
             'root_admin' => $rootAdmin,
-            '2fa' => 0,
+            'use_totp' => 0,
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $user = Database::queryOne("SELECT `id`, `external_id`, `uuid`, `username`, `email`, `name_first`, `name_last`, `language`, `root_admin`, `2fa` as two_factor, `created_at`, `updated_at` FROM `users` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        $user = Database::queryOne("SELECT `id`, `external_id`, `uuid`, `username`, `email`, `name_first`, `name_last`, `language`, `root_admin`, `use_totp`, `created_at`, `updated_at` FROM `users` WHERE `id` = :id LIMIT 1", ['id' => $id]);
 
-        return Response::json(['object' => 'user', 'attributes' => $user], 201);
+        return Response::json(['object' => 'user', 'attributes' => self::formatUser($user)], 201);
     }
 
     public function updateUser(Request $request, string $id): Response
@@ -185,9 +209,9 @@ class ApplicationApiController
 
         Database::update('users', $data, '`id` = :id', ['id' => $id]);
 
-        $updated = Database::queryOne("SELECT `id`, `external_id`, `uuid`, `username`, `email`, `name_first`, `name_last`, `language`, `root_admin`, `2fa` as two_factor, `created_at`, `updated_at` FROM `users` WHERE `id` = :id LIMIT 1", ['id' => $id]);
+        $updated = Database::queryOne("SELECT `id`, `external_id`, `uuid`, `username`, `email`, `name_first`, `name_last`, `language`, `root_admin`, `use_totp`, `created_at`, `updated_at` FROM `users` WHERE `id` = :id LIMIT 1", ['id' => $id]);
 
-        return Response::json(['object' => 'user', 'attributes' => $updated]);
+        return Response::json(['object' => 'user', 'attributes' => self::formatUser($updated)]);
     }
 
     public function deleteUser(Request $request, string $id): Response
@@ -1141,10 +1165,25 @@ class ApplicationApiController
     {
         if ($res = self::authenticate($request)) return $res;
 
-        $nests = Database::query("SELECT * FROM `nests` ORDER BY `id` ASC");
+        $page = max(1, (int)$request->input('page', 1));
+        $perPage = max(1, min(100, (int)$request->input('per_page', 50)));
+        $offset = ($page - 1) * $perPage;
+
+        $total = (int)(Database::queryOne("SELECT COUNT(*) as c FROM `nests`")['c'] ?? 0);
+        $nests = Database::query("SELECT * FROM `nests` ORDER BY `id` ASC LIMIT {$perPage} OFFSET {$offset}");
         return Response::json([
             'object' => 'list',
             'data' => array_map(fn($n) => ['object' => 'nest', 'attributes' => $n], $nests),
+            'meta' => [
+                'pagination' => [
+                    'total' => $total,
+                    'count' => count($nests),
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'total_pages' => (int)ceil($total / max(1, $perPage)),
+                    'links' => (object)[],
+                ],
+            ],
         ]);
     }
 
@@ -1160,14 +1199,70 @@ class ApplicationApiController
         return Response::json(['object' => 'nest', 'attributes' => $nest]);
     }
 
+    public function listEggs(Request $request): Response
+    {
+        if ($res = self::authenticate($request)) return $res;
+
+        $page = max(1, (int)$request->input('page', 1));
+        $perPage = max(1, min(100, (int)$request->input('per_page', 50)));
+        $offset = ($page - 1) * $perPage;
+
+        $total = (int)(Database::queryOne("SELECT COUNT(*) as c FROM `eggs`")['c'] ?? 0);
+        $eggs = Database::query("SELECT * FROM `eggs` ORDER BY `id` ASC LIMIT {$perPage} OFFSET {$offset}");
+        return Response::json([
+            'object' => 'list',
+            'data' => array_map(fn($e) => ['object' => 'egg', 'attributes' => $e], $eggs),
+            'meta' => [
+                'pagination' => [
+                    'total' => $total,
+                    'count' => count($eggs),
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'total_pages' => (int)ceil($total / max(1, $perPage)),
+                    'links' => (object)[],
+                ],
+            ],
+        ]);
+    }
+
+    public function viewEgg(Request $request, string $eggId): Response
+    {
+        if ($res = self::authenticate($request)) return $res;
+
+        $egg = Database::queryOne("SELECT * FROM `eggs` WHERE `id` = :id LIMIT 1", ['id' => $eggId]);
+        if (!$egg) {
+            return Response::json(['errors' => [['code' => 'NotFoundHttpException', 'status' => '404', 'detail' => 'Egg not found.']]], 404);
+        }
+
+        $variables = Database::query("SELECT * FROM `egg_variables` WHERE `egg_id` = :id", ['id' => $eggId]);
+        $egg['variables'] = $variables;
+
+        return Response::json(['object' => 'egg', 'attributes' => $egg]);
+    }
+
     public function listNestEggs(Request $request, string $nestId): Response
     {
         if ($res = self::authenticate($request)) return $res;
 
-        $eggs = Database::query("SELECT * FROM `eggs` WHERE `nest_id` = :nid ORDER BY `id` ASC", ['nid' => $nestId]);
+        $page = max(1, (int)$request->input('page', 1));
+        $perPage = max(1, min(100, (int)$request->input('per_page', 50)));
+        $offset = ($page - 1) * $perPage;
+
+        $total = (int)(Database::queryOne("SELECT COUNT(*) as c FROM `eggs` WHERE `nest_id` = :nid", ['nid' => $nestId])['c'] ?? 0);
+        $eggs = Database::query("SELECT * FROM `eggs` WHERE `nest_id` = :nid ORDER BY `id` ASC LIMIT {$perPage} OFFSET {$offset}", ['nid' => $nestId]);
         return Response::json([
             'object' => 'list',
             'data' => array_map(fn($e) => ['object' => 'egg', 'attributes' => $e], $eggs),
+            'meta' => [
+                'pagination' => [
+                    'total' => $total,
+                    'count' => count($eggs),
+                    'per_page' => $perPage,
+                    'current_page' => $page,
+                    'total_pages' => (int)ceil($total / max(1, $perPage)),
+                    'links' => (object)[],
+                ],
+            ],
         ]);
     }
 
