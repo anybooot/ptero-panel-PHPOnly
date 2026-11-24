@@ -39,8 +39,43 @@ class LoginHandler
     public function login(Request $request): Response
     {
         Session::start();
+
+        // 1. Bot Protection Check
+        if ($botError = \Pterodactyl\Security\BotProtection::validateForm($request)) {
+            if ($request->isAjax()) {
+                return Response::json(['error' => $botError], 400);
+            }
+            Session::flash('error', $botError);
+            return Response::redirect('/auth/login');
+        }
+
         $userIdentifier = trim((string)$request->input('user', ''));
         $password = (string)$request->input('password', '');
+        $ip = $request->getClientIp();
+
+        $ipKey = 'login_ip:' . $ip;
+        $userKey = 'login_user:' . $ip . ':' . strtolower($userIdentifier);
+
+        // 2. Rate Limiting on Login (5 attempts per user/IP, 15 attempts per IP in 5 minutes)
+        if (\Pterodactyl\Security\RateLimiter::tooManyAttempts($ipKey, 15)) {
+            $secs = \Pterodactyl\Security\RateLimiter::availableIn($ipKey);
+            $msg = "Too many failed login attempts from your IP address. Please wait {$secs} seconds before trying again.";
+            if ($request->isAjax()) {
+                return Response::json(['error' => $msg], 429);
+            }
+            Session::flash('error', $msg);
+            return Response::redirect('/auth/login');
+        }
+
+        if ($userIdentifier !== '' && \Pterodactyl\Security\RateLimiter::tooManyAttempts($userKey, 5)) {
+            $secs = \Pterodactyl\Security\RateLimiter::availableIn($userKey);
+            $msg = "Too many failed login attempts for this account. Please wait {$secs} seconds before trying again.";
+            if ($request->isAjax()) {
+                return Response::json(['error' => $msg], 429);
+            }
+            Session::flash('error', $msg);
+            return Response::redirect('/auth/login');
+        }
 
         if ($userIdentifier === '' || $password === '') {
             if ($request->isAjax()) {
@@ -56,12 +91,22 @@ class LoginHandler
         );
 
         if (!$user || !password_verify($password, $user['password'])) {
+            \Pterodactyl\Security\RateLimiter::hit($ipKey, 300);
+            \Pterodactyl\Security\RateLimiter::hit($userKey, 300);
+
             if ($request->isAjax()) {
                 return Response::json(['error' => 'The credentials provided do not match our records.'], 400);
             }
             Session::flash('error', 'The credentials provided do not match our records.');
             return Response::redirect('/auth/login');
         }
+
+        // Credentials are valid - clear login throttles
+        \Pterodactyl\Security\RateLimiter::clear($ipKey);
+        \Pterodactyl\Security\RateLimiter::clear($userKey);
+
+        // Regenerate session to eliminate session fixation
+        Session::regenerate(true);
 
         // Check 2FA
         $has2fa = (!empty($user['use_totp']) || !empty($user['totp_authenticated'])) && !empty($user['totp_secret']);

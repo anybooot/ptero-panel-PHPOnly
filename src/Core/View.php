@@ -159,4 +159,9 @@ class View
         $token = Session::getCsrfToken();
         return '<input type="hidden" name="_csrf_token" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
     }
+
+    public static function botHoneypot(): string
+    {
+        return \Pterodactyl\Security\BotProtection::generateHoneypotHtml();
+    }
 }

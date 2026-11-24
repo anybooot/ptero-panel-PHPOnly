@@ -51,7 +51,7 @@ class Application
     public function handle(Request $request): Response
     {
         $path = $request->getPath();
-        $isAsset = str_starts_with($path, '/assets/') || str_starts_with($path, '/favicons/');
+        $isAsset = str_starts_with($path, '/assets/') || str_starts_with($path, '/favicons/') || $path === '/favicon.ico' || $path === '/robots.txt';
 
         if ($isAsset) {
             $assetResponse = $this->serveStaticAsset($path);

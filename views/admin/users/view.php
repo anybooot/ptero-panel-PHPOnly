@@ -56,6 +56,25 @@
                         <span style="font-weight: 600;">Root Administrator</span>
                     </label>
                 </div>
+
+                <div class="form-group" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                    <label class="form-label">Two-Factor Authentication (2FA)</label>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px;">
+                        <div>
+                            <?php if (!empty($targetUser['use_totp']) || !empty($targetUser['totp_authenticated'])): ?>
+                                <span class="badge badge-success">Enabled (Active)</span>
+                            <?php else: ?>
+                                <span class="badge badge-secondary">Disabled</span>
+                            <?php endif; ?>
+                        </div>
+                        <?php if (!empty($targetUser['use_totp']) || !empty($targetUser['totp_authenticated'])): ?>
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #ef4444; cursor: pointer;">
+                                <input type="checkbox" name="reset_2fa" value="1">
+                                <span>Reset / Disable 2FA for this user</span>
+                            </label>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
             <div class="card-footer" style="text-align: right;">
                 <button type="submit" class="btn btn-primary">Save Changes</button>

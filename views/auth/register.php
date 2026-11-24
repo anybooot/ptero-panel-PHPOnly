@@ -47,6 +47,7 @@
 
             <form action="/auth/register" method="POST">
                 <?= \Pterodactyl\Core\View::csrf() ?>
+                <?= \Pterodactyl\Core\View::botHoneypot() ?>
 
                 <div class="form-group">
                     <label class="form-label" for="username">Username</label>

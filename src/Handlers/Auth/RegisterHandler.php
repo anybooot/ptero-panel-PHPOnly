@@ -45,6 +45,21 @@ class RegisterHandler
     public function register(Request $request): Response
     {
         Session::start();
+
+        // 1. Bot Protection Check
+        if ($botError = \Pterodactyl\Security\BotProtection::validateForm($request)) {
+            Session::flash('error', $botError);
+            return Response::redirect('/auth/register');
+        }
+
+        // 2. Rate Limit Registration (max 5 per hour per IP)
+        $regKey = 'register_ip:' . $request->getClientIp();
+        if (\Pterodactyl\Security\RateLimiter::tooManyAttempts($regKey, 5)) {
+            $secs = \Pterodactyl\Security\RateLimiter::availableIn($regKey);
+            Session::flash('error', "Too many registration attempts from this IP address. Please wait {$secs} seconds.");
+            return Response::redirect('/auth/register');
+        }
+
         $enabled = SettingsHandler::getSetting('settings::auth:registration_enabled', 'false') === 'true';
         if (!$enabled) {
             Session::flash('error', 'User registration is currently disabled.');
@@ -168,6 +183,9 @@ class RegisterHandler
         }
 
         // Auto log in new user
+        \Pterodactyl\Security\RateLimiter::hit($regKey, 3600);
+        Session::regenerate(true);
+
         Session::set('user_id', (int)$userId);
         Session::remove('2fa_pending');
         Session::remove('2fa_user_id');

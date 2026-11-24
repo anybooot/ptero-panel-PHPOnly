@@ -16,7 +16,10 @@ class AdminMiddleware
     public function handle(Request $request, callable $next): Response
     {
         $user = $request->getAttribute('user');
-        if (!Gate::isRootAdmin($user)) {
+        if (!Gate::isRootAdmin($user) || (int)($user['root_admin'] ?? 0) !== 1) {
+            if ($user && isset($user['id'])) {
+                \Pterodactyl\Core\ActivityLogger::log('admin:unauthorized_access', $user, ['path' => $request->getPath(), 'ip' => $request->getClientIp()], $request);
+            }
             if ($request->isJson() || str_starts_with($request->getPath(), '/api/')) {
                 return Response::json(['errors' => [['code' => 'AccessDeniedHttpException', 'status' => '403', 'detail' => 'You do not have administrative privileges.']]], 403);
             }

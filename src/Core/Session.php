@@ -20,10 +20,18 @@ class Session
 
         @ini_set('session.use_strict_mode', '1');
         @ini_set('session.cookie_httponly', '1');
+        @ini_set('session.use_only_cookies', '1');
+        @ini_set('session.use_trans_sid', '0');
         @ini_set('session.cookie_samesite', 'Lax');
 
         $secure = Config::get('APP_URL', '');
-        if (str_starts_with((string)$secure, 'https://')) {
+        $isHttps = str_starts_with((string)$secure, 'https://')
+            || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+            || (!empty($_SERVER['HTTP_X_FORWARDED_SSL']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_SSL']) === 'on')
+            || ((int)($_SERVER['SERVER_PORT'] ?? 0) === 443);
+
+        if ($isHttps) {
             @ini_set('session.cookie_secure', '1');
         }
 
@@ -37,6 +45,14 @@ class Session
         }
 
         if (!headers_sent()) {
+            @session_set_cookie_params([
+                'lifetime' => 0,
+                'path' => '/',
+                'domain' => '',
+                'secure' => $isHttps,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
             session_name('pterodactyl_session');
             @session_start();
         }
@@ -104,23 +120,41 @@ class Session
         return $val;
     }
 
+    public static function regenerate(bool $deleteOldSession = true): void
+    {
+        self::start();
+        if (session_status() === PHP_SESSION_ACTIVE && !headers_sent()) {
+            @session_regenerate_id($deleteOldSession);
+            try {
+                $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+            } catch (\Throwable) {
+                $_SESSION['_csrf_token'] = md5(uniqid((string)mt_rand(), true)) . md5(microtime(true) . 'csrf');
+            }
+        }
+    }
+
     public static function destroy(): void
     {
         self::start();
         $_SESSION = [];
-        if (ini_get("session.use_cookies")) {
+        if (ini_get("session.use_cookies") && !headers_sent()) {
             $params = session_get_cookie_params();
-            setcookie(
+            @setcookie(
                 session_name(),
                 '',
-                time() - 42000,
-                $params["path"],
-                $params["domain"],
-                $params["secure"],
-                $params["httponly"]
+                [
+                    'expires' => time() - 42000,
+                    'path' => $params['path'] ?? '/',
+                    'domain' => $params['domain'] ?? '',
+                    'secure' => !empty($params['secure']),
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                ]
             );
         }
-        session_destroy();
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            @session_destroy();
+        }
         self::$started = false;
     }
 }

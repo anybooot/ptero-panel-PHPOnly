@@ -38,6 +38,19 @@ class TwoFactorHandler
             return Response::redirect('/auth/login');
         }
 
+        $ip = $request->getClientIp();
+        $totpKey = "2fa_checkpoint:{$userId}:{$ip}";
+
+        if (\Pterodactyl\Security\RateLimiter::tooManyAttempts($totpKey, 5)) {
+            $secs = \Pterodactyl\Security\RateLimiter::availableIn($totpKey);
+            $msg = "Too many failed 2FA verification attempts. Please wait {$secs} seconds before trying again.";
+            if ($request->isAjax()) {
+                return Response::json(['error' => $msg], 429);
+            }
+            Session::flash('error', $msg);
+            return Response::redirect('/auth/checkpoint');
+        }
+
         $code = trim((string)$request->input('code', ''));
         $user = Database::queryOne("SELECT * FROM `users` WHERE `id` = :id LIMIT 1", ['id' => $userId]);
 
@@ -58,6 +71,8 @@ class TwoFactorHandler
         }
 
         if (!TotpService::verify($secret, $code)) {
+            \Pterodactyl\Security\RateLimiter::hit($totpKey, 300);
+
             if ($request->isAjax()) {
                 return Response::json(['error' => 'The two-factor authentication code provided was invalid.'], 400);
             }
@@ -65,7 +80,10 @@ class TwoFactorHandler
             return Response::redirect('/auth/checkpoint');
         }
 
-        // 2FA Verified
+        // 2FA Verified - clear rate limits and regenerate session ID
+        \Pterodactyl\Security\RateLimiter::clear($totpKey);
+        Session::regenerate(true);
+
         Session::set('user_id', $user['id']);
         Session::remove('2fa_pending');
         Session::remove('2fa_user_id');

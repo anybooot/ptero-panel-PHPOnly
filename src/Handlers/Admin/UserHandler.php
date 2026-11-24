@@ -128,6 +128,7 @@ class UserHandler
 
     public function update(Request $request, string $id): Response
     {
+        $currentUser = $request->getAttribute('user');
         $targetUser = Database::queryOne("SELECT * FROM `users` WHERE `id` = :id LIMIT 1", ['id' => $id]);
         if (!$targetUser) {
             return Response::redirect('/admin/users');
@@ -140,6 +141,12 @@ class UserHandler
         $password = (string)$request->input('password', '');
         $rootAdmin = $request->boolean('root_admin', false) ? 1 : 0;
 
+        // Block field tampering: Prevent logged-in administrator from removing their own root_admin privilege
+        if (((int)$currentUser['id']) === ((int)$id) && $rootAdmin !== 1) {
+            Session::flash('error', 'You cannot remove administrative privileges from your own account.');
+            return Response::redirect("/admin/users/view/{$id}");
+        }
+
         $data = [
             'email' => $email,
             'username' => $username,
@@ -148,6 +155,12 @@ class UserHandler
             'root_admin' => $rootAdmin,
             'updated_at' => date('Y-m-d H:i:s'),
         ];
+
+        if ($request->boolean('reset_2fa', false)) {
+            $data['use_totp'] = 0;
+            $data['totp_secret'] = null;
+            $data['totp_authenticated_at'] = null;
+        }
 
         if ($password !== '') {
             $data['password'] = password_hash($password, PASSWORD_BCRYPT);

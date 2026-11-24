@@ -18,6 +18,12 @@ use Pterodactyl\Handlers\Admin\SettingsHandler;
  */
 class ForgotPasswordHandler
 {
+    /**
+     * Password reset token validity duration in seconds (10 minutes).
+     */
+    public const TOKEN_EXPIRY_SECONDS = 600;
+    public const TOKEN_EXPIRY_MINUTES = 10;
+
     public function showForgotForm(Request $request): Response
     {
         Session::start();
@@ -38,6 +44,23 @@ class ForgotPasswordHandler
     public function sendResetLink(Request $request): Response
     {
         Session::start();
+
+        // Bot protection
+        if ($botError = \Pterodactyl\Security\BotProtection::validateForm($request)) {
+            Session::flash('error', $botError);
+            return Response::redirect('/auth/password');
+        }
+
+        // Rate limit: max 3 reset attempts per 15 minutes per IP
+        $resetKey = 'pw_reset_ip:' . $request->getClientIp();
+        if (\Pterodactyl\Security\RateLimiter::tooManyAttempts($resetKey, 3)) {
+            $secs = \Pterodactyl\Security\RateLimiter::availableIn($resetKey);
+            Session::flash('error', "Too many password reset requests from your IP. Please try again in {$secs} seconds.");
+            return Response::redirect('/auth/password');
+        }
+
+        \Pterodactyl\Security\RateLimiter::hit($resetKey, 900);
+
         $email = trim((string)$request->input('email', ''));
 
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -78,7 +101,7 @@ class ForgotPasswordHandler
                   . "</p>"
                   . "<p>If the button above does not work, copy and paste this URL into your browser:</p>"
                   . "<p style=\"word-break: break-all; color: #2563eb;\"><a href=\"{$resetUrl}\">{$resetUrl}</a></p>"
-                  . "<p>This password reset link will expire in 60 minutes.</p>"
+                  . "<p>This password reset link will expire in " . self::TOKEN_EXPIRY_MINUTES . " minutes.</p>"
                   . "<p>If you did not request a password reset, no further action is required.</p>"
                   . "<hr style=\"border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;\">"
                   . "<p style=\"color: #64748b; font-size: 12px;\">{$appName}</p>";
@@ -110,9 +133,9 @@ class ForgotPasswordHandler
             return Response::redirect('/auth/password');
         }
 
-        // Check if token is older than 60 minutes
+        // Check if token is older than 10 minutes (TOKEN_EXPIRY_SECONDS)
         $createdAt = strtotime((string)$record['created_at']);
-        if (time() - $createdAt > 3600) {
+        if (time() - $createdAt > self::TOKEN_EXPIRY_SECONDS) {
             Database::execute("DELETE FROM `password_resets` WHERE `token` = :token", ['token' => $token]);
             Session::flash('error', 'This password reset token has expired. Please request a new one.');
             return Response::redirect('/auth/password');
@@ -133,6 +156,13 @@ class ForgotPasswordHandler
     {
         Session::start();
         $token = trim((string)$request->input('token', ''));
+
+        // Bot protection
+        if ($botError = \Pterodactyl\Security\BotProtection::validateForm($request)) {
+            Session::flash('error', $botError);
+            return Response::redirect("/auth/password/reset/{$token}");
+        }
+
         $email = trim((string)$request->input('email', ''));
         $password = (string)$request->input('password', '');
         $passwordConfirmation = (string)$request->input('password_confirmation', '');
@@ -164,7 +194,7 @@ class ForgotPasswordHandler
         }
 
         $createdAt = strtotime((string)$record['created_at']);
-        if (time() - $createdAt > 3600) {
+        if (time() - $createdAt > self::TOKEN_EXPIRY_SECONDS) {
             Database::execute("DELETE FROM `password_resets` WHERE `token` = :token", ['token' => $token]);
             Session::flash('error', 'This password reset token has expired. Please request a new one.');
             return Response::redirect('/auth/password');
@@ -177,6 +207,7 @@ class ForgotPasswordHandler
         );
 
         Database::execute("DELETE FROM `password_resets` WHERE `email` = :email", ['email' => $email]);
+        Session::regenerate(true);
 
         Session::flash('success', 'Your password has been reset successfully! You can now log in.');
         return Response::redirect('/auth/login');

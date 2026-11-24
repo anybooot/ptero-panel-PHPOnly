@@ -85,6 +85,31 @@ class Response
     {
         if (!headers_sent()) {
             http_response_code($this->statusCode);
+
+            // Default Security Headers (XSS, Clickjacking, MIME sniffing, and framing protection)
+            $defaultSecurityHeaders = [
+                'X-Content-Type-Options' => 'nosniff',
+                'X-Frame-Options' => 'SAMEORIGIN',
+                'X-XSS-Protection' => '1; mode=block',
+                'Referrer-Policy' => 'strict-origin-when-cross-origin',
+                'Content-Security-Policy' => "base-uri 'self'; object-src 'none'; frame-ancestors 'self';",
+                'Permissions-Policy' => 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()',
+            ];
+
+            $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string)$_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+                || ((int)($_SERVER['SERVER_PORT'] ?? 0) === 443);
+
+            if ($isHttps) {
+                $defaultSecurityHeaders['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
+            }
+
+            foreach ($defaultSecurityHeaders as $secName => $secValue) {
+                if (!isset($this->headers[$secName])) {
+                    header("{$secName}: {$secValue}");
+                }
+            }
+
             foreach ($this->headers as $name => $value) {
                 header("{$name}: {$value}");
             }

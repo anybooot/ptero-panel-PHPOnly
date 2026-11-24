@@ -61,7 +61,8 @@ class SubuserHandler
         }
 
         $email = trim((string)$request->input('email', ''));
-        $permissions = (array)$request->input('permissions', []);
+        $rawPermissions = (array)$request->input('permissions', []);
+        $permissions = $this->sanitizePermissions($rawPermissions, $user, $server);
 
         if ($email === '') {
             return Response::json(['error' => 'An email address is required.'], 400);
@@ -116,7 +117,8 @@ class SubuserHandler
             return Response::json(['error' => 'You do not have permission to update subusers.'], 403);
         }
 
-        $permissions = (array)$request->input('permissions', []);
+        $rawPermissions = (array)$request->input('permissions', []);
+        $permissions = $this->sanitizePermissions($rawPermissions, $user, $server);
 
         Database::update('subusers', [
             'permissions' => json_encode(array_values($permissions)),
@@ -126,6 +128,40 @@ class SubuserHandler
         \Pterodactyl\Core\ActivityLogger::log('server:subuser.update', $user, ['subuser_id' => $subuserId], $request, $server);
 
         return Response::json(['success' => true]);
+    }
+
+    private function sanitizePermissions(array $permissions, array $actingUser, array $server): array
+    {
+        $allowedMap = [
+            'websocket.connect',
+            'control.console', 'control.start', 'control.stop', 'control.restart',
+            'user.create', 'user.read', 'user.update', 'user.delete',
+            'file.create', 'file.read', 'file.read-content', 'file.save', 'file.update', 'file.delete', 'file.archive', 'file.sftp',
+            'backup.create', 'backup.read', 'backup.delete', 'backup.download', 'backup.restore',
+            'allocation.read', 'allocation.create', 'allocation.update', 'allocation.delete',
+            'startup.read', 'startup.update', 'startup.docker-image',
+            'database.create', 'database.read', 'database.update', 'database.delete',
+            'schedule.create', 'schedule.read', 'schedule.update', 'schedule.delete',
+            'settings.rename', 'settings.reinstall',
+            'activity.read',
+        ];
+
+        $isOwnerOrAdmin = Gate::isRootAdmin($actingUser) || ((int)($actingUser['id'] ?? 0) === (int)($server['owner_id'] ?? 0));
+        $sanitized = [];
+
+        foreach ($permissions as $p) {
+            $p = trim((string)$p);
+            if (!in_array($p, $allowedMap, true)) {
+                continue;
+            }
+            // Non-owners can only delegate permissions they themselves possess
+            if (!$isOwnerOrAdmin && !Gate::allows($actingUser, $server, $p)) {
+                continue;
+            }
+            $sanitized[] = $p;
+        }
+
+        return array_values(array_unique($sanitized));
     }
 
     public function delete(Request $request, string $subuserId): Response

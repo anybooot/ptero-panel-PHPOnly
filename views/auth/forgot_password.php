@@ -56,6 +56,7 @@
 
             <form action="/auth/password" method="POST">
                 <?= \Pterodactyl\Core\View::csrf() ?>
+                <?= \Pterodactyl\Core\View::botHoneypot() ?>
 
                 <div class="form-group" style="margin-bottom: 24px;">
                     <label class="form-label" for="email">Email Address</label>

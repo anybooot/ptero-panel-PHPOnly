@@ -46,6 +46,7 @@
 
             <form action="/auth/password/reset" method="POST">
                 <?= \Pterodactyl\Core\View::csrf() ?>
+                <?= \Pterodactyl\Core\View::botHoneypot() ?>
                 <input type="hidden" name="token" value="<?= \Pterodactyl\Core\View::e($token) ?>">
 
                 <div class="form-group">

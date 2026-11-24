@@ -43,7 +43,7 @@
                                 <td><?= $k['last_used_at'] ? date('M j, Y H:i', strtotime($k['last_used_at'])) : '<span style="color:var(--text-muted)">Never</span>' ?></td>
                                 <td><?= date('M j, Y', strtotime($k['created_at'])) ?></td>
                                 <td style="text-align: right;">
-                                    <button class="btn btn-danger btn-sm" onclick="deleteApiKey('<?= $k['identifier'] ?>')">Revoke</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteApiKey('<?= \Pterodactyl\Core\View::e($k['identifier']) ?>')">Revoke</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

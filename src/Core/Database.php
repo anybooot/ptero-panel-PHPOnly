@@ -92,18 +92,30 @@ class Database
     public static function insert(string $table, array $data): int|string
     {
         $db = self::connect();
-        $fields = array_keys($data);
-        $placeholders = array_map(fn($f) => ":{$f}", $fields);
+        $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        $fields = [];
+        $cleanData = [];
+        $placeholders = [];
+
+        foreach ($data as $key => $val) {
+            $cleanKey = preg_replace('/[^a-zA-Z0-9_]/', '', (string)$key);
+            if ($cleanKey === '') {
+                continue;
+            }
+            $fields[] = $cleanKey;
+            $placeholders[] = ":{$cleanKey}";
+            $cleanData[$cleanKey] = $val;
+        }
 
         $sql = sprintf(
             "INSERT INTO `%s` (`%s`) VALUES (%s)",
-            $table,
+            $safeTable,
             implode('`, `', $fields),
             implode(', ', $placeholders)
         );
 
         $stmt = $db->prepare($sql);
-        self::bindParams($stmt, $data);
+        self::bindParams($stmt, $cleanData);
         $stmt->execute();
         return $db->lastInsertId();
     }
@@ -111,15 +123,20 @@ class Database
     public static function update(string $table, array $data, string $where, array $whereParams = []): int
     {
         $db = self::connect();
+        $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
         $setClauses = [];
         $params = [];
 
         foreach ($data as $key => $val) {
-            $setClauses[] = "`{$key}` = :set_{$key}";
-            $params["set_{$key}"] = $val;
+            $cleanKey = preg_replace('/[^a-zA-Z0-9_]/', '', (string)$key);
+            if ($cleanKey === '') {
+                continue;
+            }
+            $setClauses[] = "`{$cleanKey}` = :set_{$cleanKey}";
+            $params["set_{$cleanKey}"] = $val;
         }
 
-        $sql = sprintf("UPDATE `%s` SET %s WHERE %s", $table, implode(', ', $setClauses), $where);
+        $sql = sprintf("UPDATE `%s` SET %s WHERE %s", $safeTable, implode(', ', $setClauses), $where);
         $stmt = $db->prepare($sql);
         self::bindParams($stmt, array_merge($params, $whereParams));
         $stmt->execute();
@@ -129,9 +146,11 @@ class Database
     public static function delete(string $table, string $where, array $whereParams = []): int
     {
         $db = self::connect();
-        $sql = sprintf("DELETE FROM `%s` WHERE %s", $table, $where);
+        $safeTable = preg_replace('/[^a-zA-Z0-9_]/', '', $table);
+        $sql = sprintf("DELETE FROM `%s` WHERE %s", $safeTable, $where);
         $stmt = $db->prepare($sql);
-        $stmt->execute($whereParams);
+        self::bindParams($stmt, $whereParams);
+        $stmt->execute();
         return $stmt->rowCount();
     }
 

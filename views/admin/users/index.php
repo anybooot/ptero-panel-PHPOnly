@@ -60,7 +60,7 @@
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <?php if (!empty($u['totp_authenticated'])): ?>
+                                    <?php if (!empty($u['use_totp']) || !empty($u['totp_authenticated'])): ?>
                                         <span class="badge badge-success">Enabled</span>
                                     <?php else: ?>
                                         <span class="badge badge-secondary">Disabled</span>

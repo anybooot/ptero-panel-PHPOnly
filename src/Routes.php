@@ -6,9 +6,12 @@ namespace Pterodactyl;
 
 use Pterodactyl\Core\Router;
 use Pterodactyl\Middleware\AdminMiddleware;
+use Pterodactyl\Middleware\ApplicationApiMiddleware;
 use Pterodactyl\Middleware\AuthMiddleware;
+use Pterodactyl\Middleware\BotProtectionMiddleware;
 use Pterodactyl\Middleware\CsrfMiddleware;
 use Pterodactyl\Middleware\DaemonAuthMiddleware;
+use Pterodactyl\Middleware\RateLimitMiddleware;
 use Pterodactyl\Middleware\ServerAccessMiddleware;
 use Pterodactyl\Handlers\Auth;
 use Pterodactyl\Handlers\Client;
@@ -23,7 +26,8 @@ class Routes
 {
     public static function register(Router $router): void
     {
-        // ================= SETUP WIZARD =================
+        $router->group(['middleware' => [BotProtectionMiddleware::class, RateLimitMiddleware::class]], function (Router $router) {
+            // ================= SETUP WIZARD =================
         $router->get('/setup', [Setup\SetupHandler::class, 'show']);
         $router->post('/setup/database', [Setup\SetupHandler::class, 'setupDatabase'], [CsrfMiddleware::class]);
         $router->post('/setup/user', [Setup\SetupHandler::class, 'createUser'], [CsrfMiddleware::class]);
@@ -61,7 +65,7 @@ class Routes
         });
 
         // ================= APPLICATION API =================
-        $router->group(['prefix' => '/api/application'], function (Router $r) {
+        $router->group(['prefix' => '/api/application', 'middleware' => [ApplicationApiMiddleware::class]], function (Router $r) {
             // Users
             $r->get('/users', [ApplicationApi\ApplicationApiController::class, 'listUsers']);
             $r->post('/users', [ApplicationApi\ApplicationApiController::class, 'createUser']);
@@ -250,7 +254,7 @@ class Routes
         });
 
         // ================= ADMINISTRATOR PANEL (root_admin required) =================
-        $router->group(['prefix' => '/admin', 'middleware' => [AuthMiddleware::class, AdminMiddleware::class]], function (Router $r) {
+        $router->group(['prefix' => '/admin', 'middleware' => [AuthMiddleware::class, AdminMiddleware::class, CsrfMiddleware::class]], function (Router $r) {
             $r->get('/', [Admin\OverviewHandler::class, 'index']);
 
             // Locations
@@ -363,6 +367,7 @@ class Routes
             $r->get('/api/new', [Admin\ApiHandler::class, 'createForm']);
             $r->post('/api/new', [Admin\ApiHandler::class, 'create'], [CsrfMiddleware::class]);
             $r->delete('/api/{id}', [Admin\ApiHandler::class, 'delete']);
+        });
         });
     }
 }

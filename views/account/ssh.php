@@ -39,7 +39,7 @@
                                 <td style="font-family: var(--font-mono); font-size: 12px; color: #93c5fd;"><?= \Pterodactyl\Core\View::e($k['fingerprint']) ?></td>
                                 <td><?= date('M j, Y', strtotime($k['created_at'])) ?></td>
                                 <td style="text-align: right;">
-                                    <button class="btn btn-danger btn-sm" onclick="deleteSshKey('<?= $k['fingerprint'] ?>')">Delete</button>
+                                    <button class="btn btn-danger btn-sm" onclick="deleteSshKey('<?= \Pterodactyl\Core\View::e($k['fingerprint']) ?>')">Delete</button>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
