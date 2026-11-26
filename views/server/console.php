@@ -185,8 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Initialize WebSocket Console ONLY if user has permission to access console
-    <?php if (!empty($canConsole)): ?>
+    // Initialize Console & Power Controls
+    <?php if (!empty($canConsole) || !empty($canStart) || !empty($canStop) || !empty($canRestart) || !empty($canKill)): ?>
     if (window.ServerConsole) {
         new ServerConsole('<?= $server['uuid'] ?>', <?= (int)$server['id'] ?>);
     }

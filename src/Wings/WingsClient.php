@@ -22,7 +22,10 @@ class WingsClient
 
     public static function getNodeSecret(array $node): string
     {
-        return Encrypter::decryptString($node['daemon_token']);
+        if (empty($node['daemon_token'])) {
+            return '';
+        }
+        return Encrypter::decryptString((string)$node['daemon_token']);
     }
 
     public static function isNodeReachable(array $node, float $timeout = 0.8): bool
@@ -144,6 +147,43 @@ class WingsClient
 
         $decoded = json_decode($response, true);
         return is_array($decoded) ? $decoded : $response;
+    }
+
+    private static array $isCustomWingsCache = [];
+
+    /**
+     * Determines whether the target node is running custom Wings (WingsJAVA) or official Go Wings.
+     */
+    public static function isCustomWings(array $node): bool
+    {
+        $nodeId = (int)($node['id'] ?? 0);
+        if (isset(self::$isCustomWingsCache[$nodeId])) {
+            return self::$isCustomWingsCache[$nodeId];
+        }
+
+        try {
+            $sys = self::request($node, 'GET', '/api/system', null, [], null, 3);
+            if (is_array($sys)) {
+                $kernel = (string)($sys['kernel_version'] ?? ($sys['system']['kernel_version'] ?? ''));
+                if (str_contains($kernel, '-native') || str_contains($kernel, 'native')) {
+                    return self::$isCustomWingsCache[$nodeId] = true;
+                }
+                $version = (string)($sys['version'] ?? '');
+                if (str_contains($version, 'java') || str_contains($version, 'WingsJAVA')) {
+                    return self::$isCustomWingsCache[$nodeId] = true;
+                }
+            }
+        } catch (\Throwable) {}
+
+        // Fallback check for local node running custom Wings workspace
+        $fqdn = strtolower(trim((string)($node['fqdn'] ?? '')));
+        if ($fqdn === '127.0.0.1' || $fqdn === 'localhost' || $fqdn === '::1' || empty($fqdn)) {
+            if (is_dir('C:/Users/Marian/Desktop/decompile/src-cfr') || file_exists('C:/Users/Marian/Desktop/decompile/wings-peServerFree.jar')) {
+                return self::$isCustomWingsCache[$nodeId] = true;
+            }
+        }
+
+        return self::$isCustomWingsCache[$nodeId] = false;
     }
 
     // Power actions

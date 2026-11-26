@@ -35,44 +35,72 @@ class PowerHandler
         }
 
         try {
-            // Check what software is running and use its stop command if stopping or restarting
-            if ($action === 'stop' || $action === 'restart') {
-                $stopCommand = $this->getSoftwareStopCommand($server);
-                $commandSent = false;
+            $newStatus = null;
 
-                if (!empty($stopCommand) && !str_starts_with($stopCommand, '^')) {
+            if ($action === 'kill') {
+                // 1. Send direct kill to Wings
+                try {
+                    WingsClient::sendPowerAction($server['node'], $server['uuid'], 'kill');
+                } catch (\Throwable) {}
+
+                // 2. Local cleanup for any lingering / orphaned host processes for this server
+                $this->forceKillServerProcesses($server);
+
+                $newStatus = 'offline';
+            } elseif ($action === 'stop' || $action === 'restart') {
+                $stopCommand = $this->getSoftwareStopCommand($server);
+                $isCustomWings = WingsClient::isCustomWings($server['node']);
+                $hasConsoleStop = !empty($stopCommand) && !str_starts_with($stopCommand, '^');
+
+                if ($hasConsoleStop) {
+                    // Normal graceful stop command via console (e.g. Minecraft 'stop', Velocity 'end', Source 'quit')
                     try {
                         WingsClient::sendCommands($server['node'], $server['uuid'], [$stopCommand]);
-                        $commandSent = true;
-                    } catch (\Throwable) {
-                        // Fallback will execute below
-                        $commandSent = false;
-                    }
-                }
+                    } catch (\Throwable) {}
 
-                // If command could not be sent (or as fallback / for restart action), send direct power action to Wings
-                if (!$commandSent || $action === 'restart') {
                     try {
                         WingsClient::sendPowerAction($server['node'], $server['uuid'], $action);
-                    } catch (\Throwable $e) {
-                        // If sending restart/stop to wings fails but console stop succeeded, allow graceful shutdown
-                        if (!$commandSent) {
-                            throw $e;
+                    } catch (\Throwable) {}
+
+                    $newStatus = ($action === 'restart') ? 'starting' : 'stopping';
+                } else {
+                    // Eggs with NO console stop command (e.g. Python egg with ^C, Node, etc.)
+                    if ($isCustomWings) {
+                        // In custom Wings (WingsJAVA), sp.stop() calls process.destroy() which kills only
+                        // the parent cmd.exe/bash shell and orphans python.exe. In custom Wings, sp.kill()
+                        // correctly calls handle.descendants().forEach(destroyForcibly) to kill all children.
+                        try {
+                            WingsClient::sendPowerAction($server['node'], $server['uuid'], 'kill');
+                        } catch (\Throwable) {}
+
+                        // Ensure any local host process for this server is forcibly killed
+                        $this->forceKillServerProcesses($server);
+
+                        if ($action === 'restart') {
+                            usleep(500000); // 0.5s pause
+                            try {
+                                WingsClient::sendPowerAction($server['node'], $server['uuid'], 'start');
+                            } catch (\Throwable) {}
+                            $newStatus = 'starting';
+                        } else {
+                            $newStatus = 'offline';
                         }
+                    } else {
+                        // Official Wings (Go + Docker)
+                        try {
+                            WingsClient::sendPowerAction($server['node'], $server['uuid'], $action);
+                        } catch (\Throwable) {}
+
+                        $newStatus = ($action === 'restart') ? 'starting' : 'stopping';
                     }
                 }
             } else {
-                // start and kill send direct power actions to Wings
-                WingsClient::sendPowerAction($server['node'], $server['uuid'], $action);
+                // 'start'
+                WingsClient::sendPowerAction($server['node'], $server['uuid'], 'start');
+                $newStatus = 'starting';
             }
 
             // Update database status immediately
-            $newStatus = match ($action) {
-                'start', 'restart' => 'starting',
-                'stop' => 'stopping',
-                'kill' => 'offline',
-                default => null,
-            };
             if ($newStatus) {
                 Database::execute(
                     "UPDATE `servers` SET `status` = :st WHERE `id` = :id AND (`status` IS NULL OR `status` NOT IN ('suspended', 'installing', 'restoring_backup'))",
@@ -88,14 +116,72 @@ class PowerHandler
                 $server
             );
 
-            return Response::noContent();
+            return Response::json(['success' => true, 'status' => $newStatus]);
         } catch (\Throwable $e) {
             // Final fallback: try direct Wings power action if not already tried
             try {
                 WingsClient::sendPowerAction($server['node'], $server['uuid'], $action);
-                return Response::noContent();
+                return Response::json(['success' => true]);
             } catch (\Throwable) {
                 return Response::json(['error' => 'Unable to reach the node.'], 200);
+            }
+        }
+    }
+
+    /**
+     * Forcibly terminates any process running on the host that belongs to this server (UUID or allocated ports).
+     */
+    private function forceKillServerProcesses(array $server): void
+    {
+        $uuid = trim((string)($server['uuid'] ?? ''));
+        if (empty($uuid)) {
+            return;
+        }
+
+        // Only perform host process killing if node is local / on this machine
+        $node = $server['node'] ?? [];
+        $fqdn = strtolower(trim((string)($node['fqdn'] ?? '')));
+        $isLocalNode = ($fqdn === '127.0.0.1' || $fqdn === 'localhost' || $fqdn === '::1' || empty($fqdn));
+        if (!$isLocalNode) {
+            return;
+        }
+
+        $isWindows = stripos(PHP_OS, 'WIN') === 0;
+
+        // Collect all allocated ports for this server
+        $ports = [];
+        try {
+            $allocations = Database::query("SELECT `port` FROM `allocations` WHERE `server_id` = :id", ['id' => $server['id']]);
+            foreach ($allocations as $a) {
+                if (!empty($a['port'])) {
+                    $ports[] = (int)$a['port'];
+                }
+            }
+        } catch (\Throwable) {}
+
+        if ($isWindows) {
+            $safeUuid = addslashes($uuid);
+
+            // 1. Terminate any processes whose command line contains the server UUID (via WMIC)
+            @exec("wmic process where \"CommandLine like '%{$safeUuid}%'\" call terminate 2>NUL");
+
+            // 2. PowerShell CIM process termination fallback
+            $psCmd = "Get-CimInstance Win32_Process | Where-Object { \$_.CommandLine -like '*{$safeUuid}*' -or \$_.ExecutablePath -like '*{$safeUuid}*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force -ErrorAction SilentlyContinue }";
+            @exec("powershell -NoProfile -NonInteractive -Command \"{$psCmd}\" 2>NUL");
+
+            // 3. Kill any processes bound to the server's ports
+            foreach ($ports as $port) {
+                $psPortCmd = "Get-NetTCPConnection -LocalPort {$port} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id \$_.OwningProcess -Force -ErrorAction SilentlyContinue }";
+                @exec("powershell -NoProfile -NonInteractive -Command \"{$psPortCmd}\" 2>NUL");
+            }
+        } else {
+            // Linux / Unix
+            $safeUuid = escapeshellarg($uuid);
+            @exec("pkill -9 -f {$safeUuid} 2>/dev/null");
+
+            foreach ($ports as $port) {
+                $portInt = (int)$port;
+                @exec("fuser -k -9 {$portInt}/tcp 2>/dev/null");
             }
         }
     }
@@ -157,6 +243,10 @@ class PowerHandler
 
         if (str_contains($ident, 'ark')) {
             return 'doexit';
+        }
+
+        if (str_contains($ident, 'python') || str_contains($ident, 'node') || str_contains($ident, 'bot')) {
+            return '^C';
         }
 
         return 'stop';

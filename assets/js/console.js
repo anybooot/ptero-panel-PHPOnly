@@ -17,6 +17,11 @@ class ServerConsole {
         this.reconnectTimer = null;
         this.autoScroll = true;
         this.storageKey = `server_console_buffer_${this.serverUuid}`;
+        this.storedLinesKey = `server_console_lines_${this.serverUuid}`;
+        this.storedLines = [];
+        this.isReplayingLogs = false;
+        this.replayBatch = [];
+        this.replayTimer = null;
 
         this.init();
     }
@@ -30,25 +35,38 @@ class ServerConsole {
     restoreBuffer() {
         if (!this.terminalWindow) return;
         try {
-            const saved = sessionStorage.getItem(this.storageKey);
-            if (saved) {
+            const savedHtml = sessionStorage.getItem(this.storageKey);
+            const savedLines = sessionStorage.getItem(this.storedLinesKey);
+            if (savedLines) {
+                this.storedLines = JSON.parse(savedLines);
+                if (!Array.isArray(this.storedLines)) {
+                    this.storedLines = [];
+                }
+            }
+            if (savedHtml) {
                 // Clean out any historical connection info lines
-                const cleaned = saved.replace(/<div[^>]*>.*?Connecting to the node.*?<\/div>/gi, '')
-                                     .replace(/<div[^>]*>.*?Connected to the node.*?<\/div>/gi, '');
+                const cleaned = savedHtml.replace(/<div[^>]*>.*?Connecting to the node.*?<\/div>/gi, '')
+                                         .replace(/<div[^>]*>.*?Connected to the node.*?<\/div>/gi, '');
                 this.terminalWindow.innerHTML = cleaned;
                 this.terminalWindow.scrollTop = this.terminalWindow.scrollHeight;
             }
-        } catch (e) {}
+        } catch (e) {
+            this.storedLines = [];
+        }
     }
 
     persistBuffer() {
         if (!this.terminalWindow) return;
         try {
-            // Cap at 400 lines to avoid sessionStorage limits
-            while (this.terminalWindow.children.length > 400) {
+            // Cap at 500 lines to avoid sessionStorage limits while maintaining deep history
+            while (this.terminalWindow.children.length > 500) {
                 this.terminalWindow.removeChild(this.terminalWindow.firstChild);
             }
+            if (this.storedLines.length > 500) {
+                this.storedLines = this.storedLines.slice(-500);
+            }
             sessionStorage.setItem(this.storageKey, this.terminalWindow.innerHTML);
+            sessionStorage.setItem(this.storedLinesKey, JSON.stringify(this.storedLines));
         } catch (e) {}
     }
 
@@ -177,8 +195,16 @@ class ServerConsole {
 
             switch (event) {
                 case 'auth success':
+                    this.isReplayingLogs = true;
+                    this.replayBatch = [];
+                    clearTimeout(this.replayTimer);
                     this.sendEvent('send logs');
                     this.sendEvent('send stats');
+
+                    // If no logs arrive within 350ms, finalize replay
+                    this.replayTimer = setTimeout(() => {
+                        this.flushReplayLogs();
+                    }, 350);
                     break;
 
                 case 'status':
@@ -186,7 +212,15 @@ class ServerConsole {
                     break;
 
                 case 'console output':
-                    this.appendConsole(args[0]);
+                    if (this.isReplayingLogs) {
+                        this.replayBatch.push(args[0]);
+                        clearTimeout(this.replayTimer);
+                        this.replayTimer = setTimeout(() => {
+                            this.flushReplayLogs();
+                        }, 120);
+                    } else {
+                        this.appendConsole(args[0]);
+                    }
                     break;
 
                 case 'stats':
@@ -244,20 +278,83 @@ class ServerConsole {
         } catch (e) {}
     }
 
+    flushReplayLogs() {
+        if (!this.isReplayingLogs) return;
+        this.isReplayingLogs = false;
+        clearTimeout(this.replayTimer);
+
+        if (!this.replayBatch || this.replayBatch.length === 0) {
+            return;
+        }
+
+        // Split all incoming replay chunks into clean lines
+        const incomingLines = [];
+        for (const chunk of this.replayBatch) {
+            if (chunk === undefined || chunk === null) continue;
+            const split = String(chunk).split(/\r?\n/);
+            for (let i = 0; i < split.length; i++) {
+                const line = split[i];
+                if (line === '' && i === split.length - 1 && split.length > 1) continue;
+                incomingLines.push(line);
+            }
+        }
+
+        if (incomingLines.length === 0) return;
+
+        // If no stored lines exist yet (e.g. initial visit), render all lines
+        if (!this.storedLines || this.storedLines.length === 0) {
+            for (const line of incomingLines) {
+                this.appendLineDirect(line);
+            }
+            this.persistBuffer();
+            return;
+        }
+
+        // Find largest overlap k where incomingLines[0 ... k-1] matches the end of storedLines
+        const maxK = Math.min(this.storedLines.length, incomingLines.length);
+        let overlap = 0;
+        for (let k = maxK; k >= 1; k--) {
+            let match = true;
+            for (let i = 0; i < k; i++) {
+                if (this.storedLines[this.storedLines.length - k + i] !== incomingLines[i]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                overlap = k;
+                break;
+            }
+        }
+
+        // Only append lines that appeared strictly AFTER the overlap!
+        const newLines = incomingLines.slice(overlap);
+        for (const line of newLines) {
+            this.appendLineDirect(line);
+        }
+        this.persistBuffer();
+    }
+
+    appendLineDirect(rawLine) {
+        if (!this.terminalWindow) return;
+        const line = document.createElement('div');
+        line.className = 'terminal-line';
+        line.innerHTML = this.parseAnsiLine(rawLine);
+        this.terminalWindow.appendChild(line);
+
+        this.storedLines.push(rawLine);
+        if (this.autoScroll) {
+            this.terminalWindow.scrollTop = this.terminalWindow.scrollHeight;
+        }
+    }
+
     appendConsole(text) {
         if (!this.terminalWindow || text === undefined || text === null) return;
         const lines = String(text).split(/\r?\n/);
         for (let i = 0; i < lines.length; i++) {
             const rawLine = lines[i];
             if (rawLine === '' && i === lines.length - 1 && lines.length > 1) continue;
-            const line = document.createElement('div');
-            line.className = 'terminal-line';
-            line.innerHTML = this.parseAnsiLine(rawLine);
-            this.terminalWindow.appendChild(line);
-        }
-
-        if (this.autoScroll) {
-            this.terminalWindow.scrollTop = this.terminalWindow.scrollHeight;
+            this.appendLineDirect(rawLine);
         }
         this.persistBuffer();
     }
@@ -371,8 +468,10 @@ class ServerConsole {
     clearConsole() {
         if (this.terminalWindow) {
             this.terminalWindow.innerHTML = '';
+            this.storedLines = [];
             try {
                 sessionStorage.removeItem(this.storageKey);
+                sessionStorage.removeItem(this.storedLinesKey);
             } catch (e) {}
         }
     }
@@ -413,24 +512,33 @@ class ServerConsole {
     }
 
     sendPower(action) {
-        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-            this.sendEvent('set state', [action]);
-            App.toast(`Signal '${action}' sent to server.`, 'info');
-        } else {
-            App.request(`/api/client/servers/${this.serverUuid}/power`, {
-                method: 'POST',
-                body: { action }
-            }).then(res => {
-                if (res && res.error) {
-                    this.showNodeUnreachable();
-                    App.toast('Unable to reach the node.', 'danger');
-                } else {
-                    App.toast(`Signal '${action}' sent to server.`, 'info');
+        // Send power action through panel backend to ensure software-specific stop commands,
+        // permission enforcement, activity logs, and process termination are executed cleanly.
+        App.request(`/api/client/servers/${this.serverUuid}/power`, {
+            method: 'POST',
+            body: { action }
+        }).then(res => {
+            if (res && res.error) {
+                App.toast(res.error, 'danger');
+            } else {
+                App.toast(`Signal '${action}' sent to server.`, 'info');
+                if (action === 'kill' || (action === 'stop' && res && res.status === 'offline')) {
+                    this.updateStatus('offline');
+                } else if (action === 'stop') {
+                    this.updateStatus('stopping');
+                } else if (action === 'start' || action === 'restart') {
+                    this.updateStatus('starting');
                 }
-            }).catch(() => {
-                this.showNodeUnreachable();
-                App.toast('Unable to reach the node.', 'danger');
-            });
+            }
+        }).catch(() => {
+            App.toast('Unable to reach the node.', 'danger');
+        });
+
+        // Also notify Wings WebSocket if open
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+            if (action === 'start' || action === 'kill') {
+                this.sendEvent('set state', [action]);
+            }
         }
     }
 }
